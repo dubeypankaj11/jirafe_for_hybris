@@ -1,0 +1,47 @@
+INSERT_UPDATE StaticLink;code[unique=true];area(code);sortorder;readPrincipals(uid);;url;extensionName;parentLink(code);;
+;jirafeStaticLink;commerce;2;employeegroup;mcc-icon-b2c.png;http://www.jirafe.com;;;;
+
+$lang=en;;;;
+$catalogVersion=catalogVersion(catalog(id[default='Default']),version[default='Online'])[unique=true,default='Default:Online'];;;;
+
+INSERT_UPDATE StaticLink;code[unique=true];title[lang=$lang];description[lang=$lang];
+;jirafeStaticLink;JIrafe Cockpit;Jirafe management extension.;
+
+INSERT_UPDATE ServicelayerJob;code[unique=true];springId
+;jirafeDataSyncJob;jirafeDataSyncJob;jirafeDataSyncJob
+;jirafeCatalogSyncJob;jirafeCatalogSyncJob;jirafeCatalogSyncJob
+;jirafeDataCleanUpJob;jirafeDataCleanUpJob;jirafeDataCleanUpJob
+;jirafeHeartbeatJob;jirafeHeartbeatJob;jirafeHeartbeatJob
+
+INSERT_UPDATE JirafeDataSyncCronJob; code[unique=true];job(code);singleExecutable;sessionLanguage(isocode)
+;jirafeDataSyncCronJob;jirafeDataSyncJob;false;en
+
+INSERT_UPDATE JirafeCatalogSyncCronJob; code[unique=true];job(code);singleExecutable;sessionLanguage(isocode)
+;jirafeCatalogSyncCronJob;jirafeCatalogSyncJob;false;en
+
+INSERT_UPDATE JirafeDataCleanUpCronJob; code[unique=true];job(code);singleExecutable;sessionLanguage(isocode)
+;jirafeDataCleanUpCronJob;jirafeDataCleanUpJob;false;en
+
+INSERT_UPDATE JirafeHeartbeatCronJob; code[unique=true];job(code);singleExecutable;sessionLanguage(isocode)
+;jirafeHeartbeatCronJob;jirafeHeartbeatJob;false;en
+
+INSERT_UPDATE Trigger;cronJob(code)[unique=true];cronExpression
+;jirafeCatalogSyncCronJob;15 00-59/05 * ? * *
+;jirafeDataCleanUpCronJob;15 16-59/60 * ? * *
+;jirafeDataSyncCronJob;   15 03-59/05 * ? * *
+;jirafeHeartbeatCronJob;  15 04-59/30 * ? * *
+
+INSERT_UPDATE UserGroup;uid[unique=true];groups(uid)
+;jirafegroup;
+
+INSERT_UPDATE Employee;uid[unique=true];groups(uid);sessionCurrency(isocode);loginDisabled
+;jirafeuser;jirafegroup;USD;true
+"#% prop = ""jirafe.outboundConnectionConfig.client_secret"";
+    passwd = Config.getString(prop, """");
+    if (passwd.equals("""")) {
+        impex.error(prop + "" is not set, jirafeuser account will remain disabled."");
+    } else {
+        lastItem.setPassword(passwd);
+        lastItem.setLoginDisabled(false);
+    }
+"

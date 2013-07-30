@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+ [y] hybris Platform
+
+ Copyright (c) 2000-2012 hybris AG
+ All rights reserved.
+
+ This software is the confidential and proprietary information of hybris
+ ("Confidential Information"). You shall not disclose such Confidential
+ Information and shall use it only in accordance with the terms of the
+ license agreement you entered into with hybris.
+
+  
+-->
+<!--
+	ATTENTION: This is just an example file. You have to edit it according to your needs.
+-->
+
+<items 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+			xsi:noNamespaceSchemaLocation="items.xsd">
+
+	<enumtypes>
+	    <enumtype code="jirafeDataStatus" autocreate="true" generate="true">
+	        <value code="NEW"/>
+	        <value code="ACCEPTED"/>
+	        <value code="IN_PROCESS"/>
+	        <value code="REJECTED"/> 
+	        <value code="NOT_AUTHORIZED"/>                   
+	    </enumtype>
+	</enumtypes>
+
+	<itemtypes>
+	
+	   <!-- JirafeData -->
+		<itemtype generate="true"
+		   code="JirafeData"
+		   extends="GenericItem"
+		   jaloclass="org.jirafe.jalo.data.JirafeData"
+		   autocreate="true"
+	   >
+	   <deployment table="JirafeData" typecode="31343"/>
+			<attributes>
+			
+				<attribute qualifier="type" type="java.lang.String">
+					<description>Type of data (e.g. Product, catalog, etc..)</description>
+					<modifiers initial="true"/>
+					<persistence type="property"/>
+				</attribute>
+
+				<attribute qualifier="typePK" type="java.lang.String">
+					<description>Primary key of the type</description>
+					<modifiers initial="true"/>
+					<persistence type="property"/>
+				</attribute>
+
+				<attribute qualifier="data" type="java.lang.String">
+					<description>The data to be sent to jirafe</description>
+                    <persistence type="property">
+                      <columntype database="oracle">
+				        <value>CLOB</value>
+				      </columntype>
+				      <columntype database="sqlserver">
+				        <value>nvarchar(max)</value>
+				      </columntype>
+				      <columntype database="mysql">
+				        <value>text</value>
+				      </columntype>
+				      <columntype>
+				        <value>varchar(4000)</value>
+				      </columntype>
+                    </persistence>
+				</attribute>
+
+				<attribute qualifier="isRemove" type="java.lang.Boolean">
+					<description>Indicates if this is a removal of data</description>
+					<persistence type="property"/>
+				</attribute>
+				
+				<attribute qualifier="timestamp" type="java.util.Date">
+					<description>The time event occurred.</description>
+					<persistence type="property"/>
+				</attribute>
+
+                <attribute qualifier="status" type="jirafeDataStatus">
+                    <description>The time event occurred.</description>
+                    <persistence type="property"/>
+                    <defaultvalue>em().getEnumerationValue("jirafeDataStatus", "NEW")</defaultvalue>
+                </attribute>
+                
+                <attribute qualifier="errors" type="java.lang.String">
+                    <description>Errors returned during submission.</description>
+                    <persistence type="property">
+                      <columntype database="oracle">
+				        <value>CLOB</value>
+				      </columntype>
+				      <columntype database="sqlserver">
+				        <value>nvarchar(max)</value>
+				      </columntype>
+				      <columntype database="mysql">
+				        <value>text</value>
+				      </columntype>
+				      <columntype>
+				        <value>varchar(4000)</value>
+				      </columntype>
+                    </persistence>               
+                </attribute>
+                
+			</attributes>
+
+		</itemtype>
+		
+		<!-- JirafeMappingDefinitions -->
+		<itemtype generate="true"
+		   code="JirafeMappingDefinitions"
+		   extends="GenericItem"
+		   jaloclass="org.jirafe.jalo.data.JirafeMappingDefinitions"
+		   autocreate="true"
+	   >
+	   <deployment table="JirafeMappingDefinitions" typecode="31344"/>
+			<attributes>
+			
+				<attribute qualifier="type" type="java.lang.String">
+					<description>Type of data (e.g. Product, catalog, etc..)</description>
+					<modifiers initial="true"/>
+					<persistence type="property"/>
+				</attribute>
+				
+				<attribute qualifier="endPointName" type="java.lang.String">
+					<description>Name of end point on jirafe api (e.g. product, order, etc..)</description>
+					<modifiers initial="true"/>
+					<persistence type="property"/>
+				</attribute>
+
+				<attribute qualifier="definition" type="java.lang.String">
+					<description>The definition of json object to model mapping</description>
+               		 <persistence type="property">
+	                      <columntype database="oracle">
+					        <value>CLOB</value>
+					      </columntype>
+					      <columntype database="sqlserver">
+					        <value>nvarchar(max)</value>
+					      </columntype>
+					      <columntype database="mysql">
+					        <value>text</value>
+					      </columntype>
+					      <columntype>
+					        <value>varchar(4000)</value>
+					      </columntype>
+                    </persistence>
+				</attribute>
+				
+				<attribute qualifier="filter" type="java.lang.String">
+					<description>The groovy representation of the interceptor filter</description>
+               		 <persistence type="property">
+	                      <columntype database="oracle">
+					        <value>CLOB</value>
+					      </columntype>
+					      <columntype database="sqlserver">
+					        <value>nvarchar(max)</value>
+					      </columntype>
+					      <columntype database="mysql">
+					        <value>text</value>
+					      </columntype>
+					      <columntype>
+					        <value>varchar(4000)</value>
+					      </columntype>
+                    </persistence>
+				</attribute>
+
+				<attribute qualifier="timestamp" type="java.util.Date">
+					<description>Last updated date.</description>
+					<persistence type="property"/>
+				</attribute>
+                             
+			</attributes>
+
+		</itemtype>
+		
+		<!-- JirafeOAuthConfig -->
+		<itemtype generate="true"
+		   code="JirafeOAuthConfig"
+		   extends="GenericItem"
+		   jaloclass="org.jirafe.jalo.data.JirafeOAuthConfig"
+		   autocreate="true"
+	   >
+	   <deployment table="JirafeOAuthConfig" typecode="31345"/>
+			<attributes>
+				<attribute qualifier="clientId" type="java.lang.String">
+					<description>OAuth2 client_id parameter</description>
+					<persistence type="property"/>
+				</attribute>
+
+				<attribute qualifier="clientSecret" type="java.lang.String">
+					<description>OAuth2 client_secret parameter</description>
+               		 <persistence type="property"/>
+				</attribute>
+
+				<attribute qualifier="siteId" type="java.lang.String">
+					<description>OAuth2 site_id parameter.</description>
+					<persistence type="property"/>
+				</attribute>
+				
+				<attribute qualifier="refreshToken" type="java.lang.String">
+					<description>OAuth2 refresh_token parameter, will be updated upon each authentication request.</description>
+					<persistence type="property"/>
+				</attribute>
+				
+				<attribute qualifier="isBeingFetched" type="java.lang.Boolean">
+					<description>Used for synchronization.</description>
+					<persistence type="property"/>
+				</attribute>
+				
+				<attribute qualifier="timestamp" type="java.util.Date">
+					<description>Last updated date.</description>
+					<persistence type="property"/>
+				</attribute>
+				
+			</attributes>
+		</itemtype>
+	
+		<itemtype generate="true" code="JirafeCatalogSyncData"
+			extends="GenericItem" jaloclass="org.jirafe.jalo.data.JirafeCatalogSyncData"
+			autocreate="true">
+			<deployment table="JirafeCatalogSyncData" typecode="31346" />
+			<attributes>
+
+				<attribute qualifier="lastModified" type="java.util.Date">
+					<description>Modified time of last item processed.</description>
+					<persistence type="property" />
+                    <defaultvalue>new Date()</defaultvalue>
+				</attribute>
+	
+				<attribute qualifier="lastPK" type="de.hybris.platform.core.PK">
+					<description>PK of last item processed.</description>
+					<persistence type="property" />
+				</attribute>
+
+                <attribute qualifier="status" type="jirafeDataStatus">
+                    <description>Status of last run.</description>
+                    <persistence type="property"/>
+                    <defaultvalue>em().getEnumerationValue("jirafeDataStatus", "NEW")</defaultvalue>
+                </attribute>
+                
+			</attributes>
+
+		</itemtype>
+        
+        <itemtype generate="true"
+            code="JirafeDataSyncCronJob"
+            extends="CronJob"
+            jaloclass="org.jirafe.jalo.cronjob.JirafeDataSyncCronJob"
+            autocreate="true">
+        </itemtype>
+
+        <itemtype generate="true"
+            code="JirafeHeartbeatCronJob"
+            extends="CronJob"
+            jaloclass="org.jirafe.jalo.cronjob.JirafeHeartbeatCronJob"
+            autocreate="true">
+        </itemtype>
+
+        <itemtype generate="true"
+            code="JirafeDataCleanUpCronJob"
+            extends="CronJob"
+            jaloclass="org.jirafe.jalo.cronjob.JirafeDataCleanUpCronJob"
+            autocreate="true">
+        </itemtype>
+        
+        <itemtype generate="true"
+            code="JirafeCatalogSyncCronJob"
+            extends="CronJob"
+            jaloclass="org.jirafe.jalo.cronjob.JirafeCatalogSyncCronJob"
+            autocreate="true">
+        </itemtype>
+        
+	</itemtypes>
+</items>

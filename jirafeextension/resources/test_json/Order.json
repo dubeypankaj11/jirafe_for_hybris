@@ -1,0 +1,73 @@
+{
+    "cookies": "@{
+        parsedCookies = [:]
+        for (cookie in cookies) {
+            parsedCookies[cookie.name] = cookie.value.toString()
+        }
+        if (!parsedCookies) return null
+        return parsedCookies
+    }",
+    "visit_id": "@{return parsedCookies['jirafe_vid']}",
+    "pageview_id": "@{return parsedCookies['jirafe_pvid']}",
+    "id": "pk@{return pk.toString()}",
+    "order_number": "code",
+    "customer_id": "user.uid@{return uid.toString()}",
+    "order_date": "date@{return dateFormat.format(date)}",
+    "create_date": "@{
+        createDate = dateFormat.format(model?.creationtime ?: new Date())
+        return createDate
+    }",
+    "change_date": "@{
+        return model?.modifiedtime ? dateFormat.format(model?.modifiedtime) : createDate
+    }",
+    "status": "status@{
+        orderStatus = [
+            CREATED: 'created',
+            ON_VALIDATION: 'validation',
+            COMPLETED: 'complete',
+            CANCELLED: 'cancelled',
+            CANCELLING: 'cancelling',
+            CHECKED_VALID: 'valid',
+            CHECKED_INVALID: 'failed',
+            PAYMENT_AUTHORIZED: 'authorized',
+            PAYMENT_NOT_AUTHORIZED: 'failed',
+            PAYMENT_AMOUNT_RESERVED: 'reserved',
+            PAYMENT_AMOUNT_NOT_RESERVED: 'notReserved',
+            PAYMENT_CAPTURED: 'captured',
+            PAYMENT_NOT_CAPTURED: 'notCaptured',
+            FRAUD_CHECKED: 'fraudCheck',
+            ORDER_PLACED_NOTIFICATION_SENT: 'placed',
+            ORDER_SPLIT: 'split',
+            PROCESSING_ERROR: 'failed',
+            B2B_PROCESSING_ERROR: 'failed',
+        ][status?.code] ?: 'other'
+        return orderStatus
+    }",
+    "subtotal": "subtotal",
+    "total": "totalPrice",
+    "total_tax": "totalTax",
+    "total_shipping": "deliveryCost",
+    "total_payment_cost": "paymentCost",
+    "total_discounts": "totalDiscounts",
+    "currency": "currency.isocode",
+    "items": [
+        {
+            "_path": "entries"
+        },
+        {
+            "id": "pk@{return pk.toString()}",
+            "create_date": "creationtime@{return dateFormat.format(creationtime)}",
+            "change_date": "modifiedtime@{return dateFormat.format(modifiedtime)}",
+            "order_item_number": "entryNumber@{entryNumber.toString()}",
+            "status": "@{return orderStatus}",
+            "quantity": "quantity",
+            "amount": "totalPrice",
+            "discount_amount": "discountValues@{
+                return de.hybris.platform.util.DiscountValue.sumAppliedValues(discountValues)
+            }",
+            "product": "product@{
+                return jirafeModelToMapConverter.toMap(product, 'Product', null)
+            }"
+        }
+    ]
+}

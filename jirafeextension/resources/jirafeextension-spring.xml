@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ [y] hybris Platform
+
+ Copyright (c) 2000-2012 hybris AG
+ All rights reserved.
+
+ This software is the confidential and proprietary information of hybris
+ ("Confidential Information"). You shall not disclose such Confidential
+ Information and shall use it only in accordance with the terms of the
+ license agreement you entered into with hybris.
+-->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:aop="http://www.springframework.org/schema/aop"
+        xmlns:context="http://www.springframework.org/schema/context"
+        xsi:schemaLocation="http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+           http://www.springframework.org/schema/context
+           http://www.springframework.org/schema/context/spring-context-3.0.xsd 
+           http://www.springframework.org/schema/aop
+           http://www.springframework.org/schema/aop/spring-aop-3.1.xsd">
+
+        <context:component-scan base-package="org.jirafe" />
+
+    <!-- 
+        Jirafe data beans 
+    -->
+    <alias name="modelJirafeDataDao" alias="jirafeDataDao"/>
+    <bean id="modelJirafeDataDao" class="org.jirafe.dao.ModelJirafeDataDao"/>
+    
+    <!-- 
+        Set of types to listen to, can populate here for testing or keep empty and load via impex, ws, etc.. 
+    -->
+    <bean id="jirafeEventTypes" class="java.util.HashSet">
+    </bean>
+    
+    <!-- 
+       Persistence strategies
+       Different persistence strategies to choose from. 
+    -->
+    <alias name="asynchronousPersistStrategy" alias="jirafeDataPersistStrategy"/>
+    <bean id="basePersistStrategy" class="org.jirafe.strategy.BasePersistStrategy" abstract="true">
+       <property name="jirafeDataDao" ref="jirafeDataDao"/>
+       <property name="jirafeJsonConverter" ref="jirafeJsonConverter"/>
+    </bean>
+    <bean id="synchronousPersistStrategy" class="org.jirafe.strategy.SynchronousPersistStrategy" parent="basePersistStrategy"/>
+    <bean id="asynchronousPersistStrategy" class="org.jirafe.strategy.AsynchronousPersistStrategy" parent="basePersistStrategy">
+        <property name="blockingQueue" ref="jirafeDataQueue"/>
+        <property name="executor" ref="jirafeDataExecutor"/>
+    </bean>  
+    <bean id="jirafeDataExecutor" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+        <property name="threadFactory">
+            <bean class="org.jirafe.io.JirafeThreadFactory">
+                
+            </bean>
+        </property>
+    </bean>
+    <bean id="jirafeDataQueue" class="java.util.concurrent.LinkedBlockingQueue"></bean>
+  
+    <!-- 
+        Events
+     
+    <bean id="jirafeEventListener" class="org.jirafe.event.JirafeEventListener">
+        <property name="eventTypes" ref="jirafeEventTypes"/>
+    </bean>
+  -->
+	<!-- 
+		Interceptor Loader
+		Responsible for loading interceptors dynamically
+	 -->
+     <bean id="jirafeInterceptorLoader" class="org.jirafe.interceptor.JirafeInterceptorLoader" >
+        <lookup-method name="lookupInterceptorRegistry" bean="interceptorRegistry" />
+     </bean>
+     
+	<!-- 
+	  Interceptors
+     -->
+	<bean id="jirafeMappingDefinitionsInterceptor" 
+	     class="org.jirafe.interceptor.JirafeMappingDefinitionsInterceptor" scope="prototype" autowire="byName">
+	     <property name="jirafeInterceptorLoader" ref="jirafeInterceptorLoader"/>
+	</bean>
+    <bean id="jirafeMappingDefinitionsInterceptorMapping"
+         class="de.hybris.platform.servicelayer.interceptor.impl.InterceptorMapping">
+       <property name="interceptor" ref="jirafeMappingDefinitionsInterceptor"/>
+       <property name="typeCode" value="JirafeMappingDefinitions"/>
+    </bean> 	
+
+    <!-- 
+        Sync strategies
+     -->
+    <alias name="jirafeHttpDataSyncStrategy" alias="jirafeDataSyncStrategy"/>    
+    <alias name="jirafeHttpCatalogSyncStrategy" alias="jirafeCatalogSyncStrategy"/>    
+    <bean id="jirafeDataLoggingSyncStrategy" class="org.jirafe.strategy.LoggingSyncStrategy"/>    
+    <bean id="jirafeHttpDataSyncStrategy" class="org.jirafe.strategy.HttpSyncStrategy">
+        <property name="jirafeOutboundClient" ref="jirafeOutboundClient"/>
+        <property name="modelService" ref="modelService"/>
+    </bean>
+    <bean id="jirafeHttpCatalogSyncStrategy" class="org.jirafe.strategy.HttpCatalogSyncStrategy">
+        <property name="jirafeOutboundClient" ref="jirafeOutboundClient"/>
+        <property name="modelService" ref="modelService"/>
+		<property name="jirafeJsonConverter" ref="jirafeJsonConverter"/>
+        <property name="jirafeMappingsDao" ref="jirafeMappingsDao"/>
+    </bean>
+        
+    <!-- 
+        Cron jobs
+     -->
+     <bean id="jirafeBaseJob" class="org.jirafe.cronjob.JirafeBaseJobPerformable"
+        parent="abstractJobPerformable" abstract="true">
+        <property name="flexibleSearchService" ref="flexibleSearchService"/>
+     </bean>
+     
+     <bean id="jirafeDataSyncJob" class="org.jirafe.cronjob.JirafeDataSyncJobPerformable"
+         parent="jirafeBaseJob">
+        <property name="jirafeDataSyncStrategy" ref="jirafeDataSyncStrategy"/>
+     </bean>
+
+     <bean id="jirafeCatalogSyncJob" class="org.jirafe.cronjob.JirafeCatalogSyncJobPerformable"
+         parent="jirafeBaseJob">
+        <property name="jirafeCatalogSyncStrategy" ref="jirafeCatalogSyncStrategy"/>
+        <property name="flexibleSearchService" ref="flexibleSearchService"/>
+     </bean>
+
+    <bean id="jirafeDataCleanUpJob" class="org.jirafe.cronjob.JirafeDataCleanUpJobPerformable"
+        parent="jirafeBaseJob">
+        <property name="modelService" ref="modelService"/>
+    </bean> 
+    
+    <bean id="jirafeHeartbeatJob" class="org.jirafe.cronjob.JirafeHeartbeatJobPerformable"
+        parent="jirafeBaseJob">
+    </bean>         
+    
+    <!-- 
+        Webservices clients
+     -->
+    <bean id="jirafeOutboundClient" class="org.jirafe.webservices.JirafeOutboundClient" />
+        
+    <bean id="jirafeJsonConverter" class="org.jirafe.converter.JirafeJsonConverter">
+        <property name="jirafeMappingsDao" ref="jirafeMappingsDao"/>
+    </bean>
+  
+    <bean id="jirafeMappingsDao" class="org.jirafe.dao.JirafeMappingsDaoImpl">
+        <property name="flexibleSearchService" ref="flexibleSearchService"/>
+        <property name="modelService" ref="modelService"/>
+        <property name="typeService" ref="typeService"/>
+    </bean>
+  
+  
+</beans>

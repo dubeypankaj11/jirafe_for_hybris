@@ -1,0 +1,19 @@
+{
+    "id": "pk@{return pk.toString()}",
+    "name": "name",
+    "create_date": "@{
+        createDate = dateFormat.format(model?.creationtime ?: new Date())
+        return createDate
+    }",
+    "change_date": "@{
+        return model?.modifiedtime ? dateFormat.format(model?.modifiedtime) : createDate
+    }",
+    "parent_categories": [
+        {
+            "_path": "supercategories"
+        },
+        {
+            "id": "pk@{return pk.toString()}"
+        }
+    ]
+}

@@ -1,0 +1,86 @@
+{
+    "id": "pk@{return pk.toString()}",
+    "is_product": "@{return !model.hasProperty('baseProduct')}",
+    "is_sku": "@{return model.getVariants() == []}",
+    "catalog": "@{
+        def version = model.getCatalogVersion()
+        def catalog = version?.getCatalog()
+        return [
+            id: catalog.getId()?.toString(),
+            name: catalog.getName(),
+            version_id: version?.getVersion()?.toString()
+        ]
+    }",
+    "name": "name",
+    "code": "code",
+    "ancestors": "@{
+        if (!model.hasProperty('baseProduct')) return null
+        def ancestry = []
+        while (model.hasProperty('baseProduct')) {
+            model = model.baseProduct
+            ancestry.add(model.pk.toString())
+        }
+        return ancestry
+    }",
+    "base_product": "@{
+        if (!model.hasProperty('baseProduct')) return null
+        def baseProduct = model.baseProduct
+        while (baseProduct.hasProperty('baseProduct')) {
+            baseProduct = baseProduct.baseProduct
+        }
+        return [
+            id: baseProduct?.pk.toString(),
+            code: baseProduct?.code,
+            name: baseProduct?.name
+        ]
+    }",
+    "vendors": [
+        {
+            "_path": "vendors"
+        },
+        {
+            "id": "pk@{return pk.toString()}",
+            "name": "name"
+        }
+    ],
+    "brand": "manufacturerName",
+    "rating": "averageRating",
+    "create_date": "@{
+        createDate = dateFormat.format(model?.creationtime ?: new Date())
+        return createDate
+    }",
+    "change_date": "@{
+        return model?.modifiedtime ? dateFormat.format(model?.modifiedtime) : createDate
+    }",
+    "images": "@{
+        def url = model?.picture?.URL
+        import de.hybris.platform.util.Config
+        def prefix = Config.getString('jirafe.imageURLPrefix', null)
+        return url ? [[url: prefix + url]] : null
+    }",
+    "categories": [
+        {
+            "_path": "supercategories"
+        },
+        {
+            "id": "pk@{return pk.toString()}",
+            "name": "name"
+        }
+    ],
+    "attributes": "@{
+        if (!model.hasProperty('baseProduct')) return null
+        def baseProduct = model.baseProduct
+        def ret = []
+        for (vadm in baseProduct?.getVariantType()?.getVariantAttributes()) {
+            def name = vadm.getName()
+            def value = modelService.getAttributeValue(model, name)
+            if (! value) continue;
+            ret.add([
+                id: name,
+                name: name,
+                value: value,
+            ])
+        }
+        return ret
+    }"
+}

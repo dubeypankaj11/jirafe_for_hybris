@@ -1,0 +1,12 @@
+build.xml
+*/target
+.metadata/
+*.class
+gensrc/
+/classes
+/eclipsebin
+/gensrc
+/platformhome.properties
+/.DS_Store
+/extensioninfo.xsd
+/resources/impex/essentialdata-jirafeextension.impex

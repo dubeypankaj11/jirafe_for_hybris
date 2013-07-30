@@ -1,0 +1,25 @@
+{
+    "id": "uid",
+    "name": "name",
+    "first_name": "name@{return name?.replaceFirst(' [^ ]+$', '')}",
+    "last_name": "name@{return name?.replaceFirst('^.* ', '')}",
+    "email" : "@{
+        if (model.hasProperty('contactEmail')) {
+            contactEmail = model.contactEmail
+            if (contactEmail != 'demo@example.com')
+                return contactEmail
+        }
+        for (address in model.addresses) {
+            if (address.email) return address.email
+        }
+        return null
+    }",
+    "active_flag": "loginDisabled@{return ! loginDisabled}",
+    "create_date": "@{
+        createDate = dateFormat.format(model?.creationtime ?: new Date())
+        return createDate
+    }",
+    "change_date": "@{
+        return model?.modifiedtime ? dateFormat.format(model?.modifiedtime) : createDate
+    }"
+}
