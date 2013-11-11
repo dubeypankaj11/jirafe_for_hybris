@@ -28,7 +28,8 @@ public class ModelJirafeDataDao implements JirafeDataDao
 	 * 
 	 */
 	@Override
-	public JirafeDataModel save(final String jirafeTypeCode, final String pk, final String json, final Boolean isRemove)
+	public JirafeDataModel save(final String jirafeTypeCode, final String pk, final String json, final String site,
+			final Boolean isRemove)
 	{
 		final JirafeDataModel model;
 
@@ -36,6 +37,7 @@ public class ModelJirafeDataDao implements JirafeDataDao
 		model.setType(jirafeTypeCode);
 		model.setTypePK(pk);
 		model.setData(json);
+		model.setSite(site);
 		model.setIsRemove(isRemove);
 		model.setTimestamp(Calendar.getInstance().getTime());
 		modelService.save(model);

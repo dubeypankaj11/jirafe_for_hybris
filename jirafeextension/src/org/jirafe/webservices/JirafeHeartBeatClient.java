@@ -11,6 +11,7 @@ import java.util.Map;
 
 import javax.annotation.Resource;
 
+import org.jirafe.constants.JirafeextensionConstants;
 import org.jirafe.interceptor.JirafeDefaultInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +37,7 @@ public class JirafeHeartBeatClient
 	{
 		try
 		{
-			jirafeOAuth2Session.putMessage(constractMessage(), "heartbeat");
+			jirafeOAuth2Session.putMessage(constractMessage(), "heartbeat", null);
 		}
 		catch (final Exception e)
 		{
@@ -49,6 +50,7 @@ public class JirafeHeartBeatClient
 		final String instanceId = String.format("<%s>:<%s>", Config.getString("cluster.id", "0"), Registry.getCurrentTenant()
 				.getTenantID());
 		final Map params = new HashMap<String, String>();
+		params.put("version", JirafeextensionConstants.RELEASE_VERSION);
 		params.put("client_id", jirafeOAuth2Session.getConnectionConfig().getClientId());
 		params.put("site_id", jirafeOAuth2Session.getConnectionConfig().getSiteId());
 		params.put("is_enabled", Boolean.valueOf(Config.getBoolean(JirafeDefaultInterceptor.IS_ENABLED, true)));

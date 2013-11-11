@@ -9,6 +9,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.Map;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
 
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpClient;
@@ -16,7 +17,8 @@ import org.apache.commons.httpclient.HttpException;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
-import org.apache.commons.httpclient.methods.DeleteMethod;
+import org.apache.commons.httpclient.URI;
+import org.apache.commons.httpclient.URIException;
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.methods.PutMethod;
 import org.apache.commons.httpclient.methods.StringRequestEntity;
@@ -43,25 +45,21 @@ public class JirafeOAuth2Session
 	private HttpClient client;
 	private String accessToken;
 	private final Gson gson = new Gson();
-	private OAuth2ConnectionConfig connectionConfig;
 
+	@Resource
+	private OAuth2ConnectionConfig connectionConfig;
 
 	@PostConstruct
 	public void init()
 	{
-		if (connectionConfig == null)
-		{
-			connectionConfig = new OAuth2ConnectionConfig();
-			accessToken = connectionConfig.getAccessToken();
-
-		}
+		accessToken = connectionConfig.getAccessToken();
 		client = new HttpClient(new MultiThreadedHttpConnectionManager());
 		client.getHttpConnectionManager().getParams().setConnectionTimeout(connectionConfig.getTimeOut());
 	}
 
-	public Map putMessage(final String message, final String type)
+	public Map putMessage(final String message, final String type, final String site)
 	{
-		final String url = getUrl(type);
+		final String url = getUrl(type, site);
 		LOG.debug("PUT <{}> message to {}", type, url);
 		final PutMethod method = new PutMethod(url);
 
@@ -71,37 +69,43 @@ public class JirafeOAuth2Session
 		}
 		catch (final UnsupportedEncodingException e)
 		{
-			LOG.error("Error encoding json message: " + e.getMessage());
+			LOG.error("Error encoding json message: {} ({})", e.getMessage(), url);
 			return null;
 		}
+		return sendMessage(method);
+	}
+
+	protected Map sendMessage(final HttpMethodBase method)
+	{
 		return sendMessage(method, 0);
 	}
 
-	public Map deleteMessage(final String type)
+	private String getMethodUrl(final HttpMethodBase method)
 	{
-		final String url = getUrl(type);
-		LOG.debug("DELETE <{}> message to {}", type, url);
-		return sendMessage(new DeleteMethod(url), 0);
-	}
+		String url;
 
-	@Deprecated
-	public Map putMessage(final String message, final String type, final boolean isRemove)
-	{
-		if (!isRemove)
+		try
 		{
-			return putMessage(message, type);
+			URI uri;
+			uri = method.getURI();
+			url = uri.getURI();
 		}
-		else
+		catch (final URIException e)
 		{
-			return deleteMessage(type);
+			LOG.debug("", e);
+			url = null;
 		}
+
+		return url;
 	}
 
 	protected Map sendMessage(final HttpMethodBase method, final int retry)
 	{
+		final String url = getMethodUrl(method);
+
 		if (retry >= MAX_RETRY)
 		{
-			LOG.error("Retry limit reached");
+			LOG.error("Retry limit reached ({})", url);
 			return null;
 		}
 
@@ -118,18 +122,18 @@ public class JirafeOAuth2Session
 
 			if (statusCode != HttpStatus.SC_OK)
 			{
-				LOG.error("Failed to send message: {}", method.getStatusLine());
+				LOG.error("Failed to send message: {} ({})", method.getStatusLine(), url);
 			}
 
 			return getMapFromJson(method);
 		}
 		catch (final HttpException e)
 		{
-			LOG.error("Fatal protocol violation: " + e.getMessage());
+			LOG.error("Fatal protocol violation: {} ({})", e.getMessage(), url);
 		}
 		catch (final IOException e)
 		{
-			LOG.error("Fatal transport error: " + e.getMessage());
+			LOG.error("Fatal transport error: {} ({})", e.getMessage(), url);
 		}
 		finally
 		{
@@ -144,10 +148,9 @@ public class JirafeOAuth2Session
 		return new Header("Authorization", String.format("Bearer %s", accessToken));
 	}
 
-	protected String getUrl(final String type)
+	protected String getUrl(final String type, final String site)
 	{
-		return new StringBuilder(connectionConfig.getEventApiUrl()).append(connectionConfig.getSiteId()).append("/").append(type)
-				.toString();
+		return connectionConfig.getEventApiUrl() + connectionConfig.getSiteId(site) + "/" + type;
 	}
 
 	protected void updateToken()
@@ -170,13 +173,14 @@ public class JirafeOAuth2Session
 				method.setParameter("password", connectionConfig.getPassword());
 				method.setParameter("grant_type", "password");
 
+				final String url = getMethodUrl(method);
 				try
 				{
 					final int statusCode = client.executeMethod(method);
 					LOG.debug("Got response code: {}", Integer.valueOf(statusCode));
 					if (statusCode != HttpStatus.SC_OK)
 					{
-						LOG.error("Authorization call failed: {}", method.getStatusLine());
+						LOG.error("Authorization call failed: {} ({})", method.getStatusLine(), url);
 					}
 
 					final Map authResponse = getMapFromJson(method);
@@ -188,11 +192,11 @@ public class JirafeOAuth2Session
 				}
 				catch (final HttpException e)
 				{
-					LOG.error("Fatal protocol violation: " + e.getMessage());
+					LOG.error("Fatal protocol violation: {} ({})", e.getMessage(), url);
 				}
 				catch (final IOException e)
 				{
-					LOG.error("Fatal transport error: " + e.getMessage());
+					LOG.error("Fatal transport error: {} ({})", e.getMessage(), url);
 				}
 				finally
 				{
@@ -222,7 +226,7 @@ public class JirafeOAuth2Session
 		}
 		catch (final JsonParseException e)
 		{
-			LOG.error("Invalid JSON received: " + jsonResponse);
+			LOG.error("Invalid JSON received: {} ({})", jsonResponse, getMethodUrl(method));
 			return null;
 		}
 	}

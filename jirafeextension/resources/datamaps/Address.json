@@ -1,0 +1,12 @@
+{
+    "id": "pk@{return pk.toString()}",
+    "address1": "line1",
+    "address2": "line2@{return line2 ?: null}",
+    "city": "town",
+    "state": "region@{
+        if (region?.isocodeShort && !region.isocodeShort?.isNumber()) return region.isocodeShort
+        return region?.name ?: null
+    }",
+    "postalcode": "postalcode@{return postalcode ?: null}",
+    "country": "country@{return country?.isocode}"
+}

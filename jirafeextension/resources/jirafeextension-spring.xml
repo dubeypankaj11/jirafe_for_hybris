@@ -72,6 +72,8 @@
 	 -->
      <bean id="jirafeInterceptorLoader" class="org.jirafe.interceptor.JirafeInterceptorLoader" >
         <lookup-method name="lookupInterceptorRegistry" bean="interceptorRegistry" />
+        <property name="clusterService" ref="clusterService"/>
+        <property name="tenantService" ref="tenantService"/>
      </bean>
      
 	<!-- 
@@ -91,17 +93,10 @@
         Sync strategies
      -->
     <alias name="jirafeHttpDataSyncStrategy" alias="jirafeDataSyncStrategy"/>    
-    <alias name="jirafeHttpCatalogSyncStrategy" alias="jirafeCatalogSyncStrategy"/>    
     <bean id="jirafeDataLoggingSyncStrategy" class="org.jirafe.strategy.LoggingSyncStrategy"/>    
     <bean id="jirafeHttpDataSyncStrategy" class="org.jirafe.strategy.HttpSyncStrategy">
         <property name="jirafeOutboundClient" ref="jirafeOutboundClient"/>
         <property name="modelService" ref="modelService"/>
-    </bean>
-    <bean id="jirafeHttpCatalogSyncStrategy" class="org.jirafe.strategy.HttpCatalogSyncStrategy">
-        <property name="jirafeOutboundClient" ref="jirafeOutboundClient"/>
-        <property name="modelService" ref="modelService"/>
-		<property name="jirafeJsonConverter" ref="jirafeJsonConverter"/>
-        <property name="jirafeMappingsDao" ref="jirafeMappingsDao"/>
     </bean>
         
     <!-- 
@@ -119,7 +114,7 @@
 
      <bean id="jirafeCatalogSyncJob" class="org.jirafe.cronjob.JirafeCatalogSyncJobPerformable"
          parent="jirafeBaseJob">
-        <property name="jirafeCatalogSyncStrategy" ref="jirafeCatalogSyncStrategy"/>
+        <property name="jirafeDataSyncStrategy" ref="jirafeDataSyncStrategy"/>
         <property name="flexibleSearchService" ref="flexibleSearchService"/>
      </bean>
 
@@ -136,16 +131,16 @@
         Webservices clients
      -->
     <bean id="jirafeOutboundClient" class="org.jirafe.webservices.JirafeOutboundClient" />
-        
+
     <bean id="jirafeJsonConverter" class="org.jirafe.converter.JirafeJsonConverter">
         <property name="jirafeMappingsDao" ref="jirafeMappingsDao"/>
     </bean>
-  
+
     <bean id="jirafeMappingsDao" class="org.jirafe.dao.JirafeMappingsDaoImpl">
         <property name="flexibleSearchService" ref="flexibleSearchService"/>
         <property name="modelService" ref="modelService"/>
         <property name="typeService" ref="typeService"/>
     </bean>
-  
-  
+
+
 </beans>

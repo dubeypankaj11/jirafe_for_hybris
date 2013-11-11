@@ -3,18 +3,22 @@
  */
 package org.jirafe.converter;
 
+import de.hybris.platform.core.PK;
 import de.hybris.platform.core.Registry;
 import de.hybris.platform.core.model.ItemModel;
+import de.hybris.platform.jalo.JaloObjectNoLongerValidException;
 import de.hybris.platform.servicelayer.model.ModelService;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.jirafe.dao.JirafeChangeTrackerDao;
 import org.jirafe.dto.JirafeDataDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +43,9 @@ public class JirafeModelToMapConverter
 	private final GroovyShell shell;
 	private final JirafeJsonConverter jirafeJsonConverter;
 
+	private final LinkedList<String> ctx;
+	private final LinkedList<String> errors;
+
 	public JirafeModelToMapConverter(final JirafeDataDto jirafeDataDto)
 	{
 		super();
@@ -49,17 +56,44 @@ public class JirafeModelToMapConverter
 		jirafeJsonConverter = (JirafeJsonConverter) Registry.getApplicationContext().getBean("jirafeJsonConverter");
 		binding.setVariable("jirafeModelToMapConverter", this);
 		binding.setVariable("modelService", modelService);
+
+		ctx = new LinkedList<String>();
+		errors = new LinkedList<String>();
+
 		shell = new GroovyShell(binding);
 	}
 
 	public void convert(final ItemModel model, final Map definition, final Map target, final Iterable keyset)
 	{
-		parseMap(definition, target, model, keyset);
+		ctx.add(String.format("%s<%s>", //
+				modelService.getModelType(model), model.getPk()));
+		try
+		{
+			parseMap(definition, target, model, keyset);
+
+		}
+		finally
+		{
+			ctx.removeLast();
+		}
+		if (ctx.size() <= 0)
+		{
+			final String errs = getErrors();
+			if (errs != null)
+			{
+				target.put("__errors__", errs);
+			}
+		}
+	}
+
+	public Map<PK, Map<String, Object>> changedItems(final ItemModel model)
+	{
+		return new JirafeChangeTrackerDao(model.getPk()).load();
 	}
 
 	public void convert(final ItemModel model, final Map definition, final Map target)
 	{
-		parseMap(definition, target, model, definition.keySet());
+		convert(model, definition, target, definition.keySet());
 	}
 
 	public Map<String, Object> toMap(final ItemModel model, final String type, Iterable keyset) throws JirafeConvertException
@@ -78,38 +112,57 @@ public class JirafeModelToMapConverter
 		return target;
 	}
 
-	protected void parseMap(final Map definition, final Map target, final ItemModel model, final Iterable keyset)
+	protected void parseMap(final Map definition, final Map target, final ItemModel model, final Iterable<String> keyset)
 	{
 		if (log.isDebugEnabled())
 		{
 			log.debug("Using definition: {}", definition);
 		}
-		final Iterator keys = keyset.iterator();
+		final Iterator<String> keys = keyset.iterator();
 		while (keys.hasNext())
 		{
-			final Object key = keys.next();
+			final String key = keys.next();
 			final Object value = definition.get(key);
 
-			if (value instanceof String)
+			ctx.add(key);
+			try
 			{
-				//ready to get data
-				populate(target, key, value, model);
-			}
-			if (value instanceof List)
-			{
-				//iterate over list
-				final List list = new ArrayList();
-				if (parseList((List) value, list, model, key.toString()))
+				if (value instanceof String)
 				{
-					target.put(key, list);
+					//ready to get data
+					populate(target, key, value, model);
+				}
+				if (value instanceof List)
+				{
+					//iterate over list
+					final List list = new ArrayList();
+					if (parseList((List) value, list, model, key.toString()))
+					{
+						target.put(key, list);
+					}
+				}
+				if (value instanceof Map)
+				{
+					//dig into map
+					final Map level = new HashMap();
+					target.put(key, level);
+					parseMap((Map) value, level, model, ((Map) value).keySet());
 				}
 			}
-			if (value instanceof Map)
+			catch (final Exception e)
 			{
-				//dig into map
-				final Map level = new HashMap();
-				target.put(key, level);
-				parseMap((Map) value, level, model, ((Map) value).keySet());
+				if (e instanceof JaloObjectNoLongerValidException)
+				{
+					throw (JaloObjectNoLongerValidException) e;
+				}
+				final String error = StringUtils.join(ctx, '.');
+				errors.add(error);
+				log.error("Exception converting record <{}> to JSON: field = <{}>", model.getPk(), error);
+				log.debug("", e);
+			}
+			finally
+			{
+				ctx.removeLast();
 			}
 		}
 	}
@@ -168,7 +221,15 @@ public class JirafeModelToMapConverter
 		{
 			final Map target = new HashMap();
 			targetList.add(target);
-			parseMap(map, target, childItem, map.keySet());
+			ctx.add(String.valueOf(targetList.size() - 1));
+			try
+			{
+				parseMap(map, target, childItem, map.keySet());
+			}
+			finally
+			{
+				ctx.removeLast();
+			}
 		}
 
 		return true;
@@ -215,11 +276,29 @@ public class JirafeModelToMapConverter
 
 	protected Object getChildValue(final Object value, final String key, final String groovyCode)
 	{
-		log.debug("Binding model as {}", key);
-		shell.setVariable(key, value);
+		final Object save = shell.getVariable(key);
 
-		log.debug("About to eval <{}>", groovyCode);
-		return shell.evaluate(groovyCode);
+		log.debug("Binding {} as {}", key, value);
+		shell.setVariable(key, value);
+		try
+		{
+			log.debug("About to eval <{}>", groovyCode);
+			final Object ret = shell.evaluate(groovyCode);
+			return ret;
+		}
+		finally
+		{
+			shell.setVariable(key, save);
+		}
+	}
+
+	public String getErrors()
+	{
+		if (errors.size() <= 0)
+		{
+			return null;
+		}
+		return StringUtils.join(errors, ",");
 	}
 
 	private static class ValueKey

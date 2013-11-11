@@ -51,6 +51,12 @@ public class JirafeDataSyncJobPerformable extends JirafeBaseJobPerformable<Jiraf
 		syncStrategy.sync(data);
 	}
 
+	@Override
+	protected void flush()
+	{
+		syncStrategy.flush();
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 

@@ -19,8 +19,9 @@ public interface JirafeDataDao
 	 * @param jirafeTypeCode
 	 * @param pk
 	 * @param json
+	 * @param site
 	 * @param isRemove
-	 * @return
+	 * @return JirafeDataModel
 	 */
-	public JirafeDataModel save(String jirafeTypeCode, String pk, String json, Boolean isRemove);
+	public JirafeDataModel save(String jirafeTypeCode, String pk, String json, String site, Boolean isRemove);
 }

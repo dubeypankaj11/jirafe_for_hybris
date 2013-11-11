@@ -200,7 +200,7 @@ public class JirafeMappingsDaoImpl implements JirafeMappingsDao
 	 * @param itemModel
 	 */
 	@Override
-	public boolean filter(final String type, final ItemModel itemModel, final boolean isRemove)
+	public boolean filter(final String type, final ItemModel itemModel)
 	{
 		final String filter = loadFilter(type);
 		if (filter == null)
@@ -210,7 +210,8 @@ public class JirafeMappingsDaoImpl implements JirafeMappingsDao
 		final Binding binding = new Binding();
 		LOG.debug("Binding model as {}", itemModel);
 		binding.setVariable("model", itemModel);
-		binding.setVariable("isRemove", Boolean.valueOf(isRemove));
+		// isRemove flag is deprecated
+		binding.setVariable("isRemove", Boolean.FALSE);
 
 		final GroovyShell shell = new GroovyShell(binding);
 
@@ -236,12 +237,16 @@ public class JirafeMappingsDaoImpl implements JirafeMappingsDao
 	{
 		final JirafeMappingDefinitionsModel model = getByType(type);
 
-		if (model == null)
+		if (model != null)
 		{
-			return null;
+			final String endPoint = model.getEndPointName();
+			if (endPoint != null)
+			{
+				return endPoint;
+			}
 		}
 
-		return model.getEndPointName();
+		return type.toLowerCase();
 	}
 
 	/**

@@ -1,0 +1,18 @@
+INSERT_UPDATE UserGroup;uid[unique=true]
+;jirafegroup
+
+INSERT_UPDATE Employee;uid[unique=true];groups(uid);sessionCurrency(isocode);sessionLanguage(isocode)
+;jirafeuser;jirafegroup;USD;en
+
+"#% if (lastItem.getPassword() == null) {
+		client_secret = ""jirafe.outboundConnectionConfig.client_secret"";
+		passwd = Config.getString(client_secret, null);
+		if (passwd == null || passwd.equals("""")) {
+			impex.error(client_secret + "" is not set, jirafeuser account disabled for your protection."");
+			lastItem.setLoginDisabled(true);
+		} else {
+			lastItem.setPassword(passwd);
+			lastItem.setLoginDisabled(false);
+		}
+	}
+"

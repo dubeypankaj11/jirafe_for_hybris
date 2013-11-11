@@ -18,10 +18,14 @@ import de.hybris.platform.util.Config;
 import java.util.Date;
 import java.util.List;
 
+import javax.annotation.Resource;
+
+import org.jirafe.dto.JirafeCatalogDataModelFactory;
 import org.jirafe.enums.JirafeDataStatus;
 import org.jirafe.model.cronjob.JirafeCatalogSyncCronJobModel;
 import org.jirafe.model.data.JirafeCatalogSyncDataModel;
-import org.jirafe.strategy.JirafeCatalogSyncStrategy;
+import org.jirafe.model.data.JirafeDataModel;
+import org.jirafe.strategy.JirafeDataSyncStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +41,11 @@ public class JirafeCatalogSyncJobPerformable extends AbstractJobPerformable<Jira
 {
 	protected static final Logger LOG = LoggerFactory.getLogger(JirafeCatalogSyncJobPerformable.class);
 
+	@Resource
 	protected FlexibleSearchService flexibleSearchService;
+	@Resource
+	protected JirafeCatalogDataModelFactory jirafeCatalogDataModelFactory;
+
 	private static final String MAX_RETRY = "jirafe.jirafeDataSync.authFailureLimit";
 
 	private static final String headerQuery = "SELECT {" + JirafeCatalogSyncDataModel.PK + "}, {"
@@ -49,13 +57,13 @@ public class JirafeCatalogSyncJobPerformable extends AbstractJobPerformable<Jira
 			+ ItemModel.MODIFIEDTIME + "} = ?lastModified AND {" + ItemModel.PK + "} > ?lastPK) ORDER BY {" + ItemModel.MODIFIEDTIME
 			+ "} ASC, {" + ItemModel.PK + "} ASC";
 
-	private JirafeCatalogSyncStrategy syncStrategy;
+	private JirafeDataSyncStrategy syncStrategy;
 
 	/**
 	 * @param syncStrategy
 	 *           the syncStrategy to set
 	 */
-	public void setJirafeCatalogSyncStrategy(final JirafeCatalogSyncStrategy syncStrategy)
+	public void setJirafeDataSyncStrategy(final JirafeDataSyncStrategy syncStrategy)
 	{
 		this.syncStrategy = syncStrategy;
 	}
@@ -71,12 +79,6 @@ public class JirafeCatalogSyncJobPerformable extends AbstractJobPerformable<Jira
 		final int batchSize;
 		List<ItemSyncTimestampModel> data;
 		final FlexibleSearchQuery query;
-
-		int successCount = 0;
-		int failureCount = 0;
-		int authFailureCount = 0;
-
-		final int maxRetry = Config.getInt(MAX_RETRY, 5);
 
 		start = 0;
 		batchSize = Config.getInt("jirafe.cronjob.batchSize", 10);
@@ -94,71 +96,34 @@ public class JirafeCatalogSyncJobPerformable extends AbstractJobPerformable<Jira
 			header.setLastModified(new Date());
 			header.setLastPK(PK.BIG_PK);
 		}
-		Date lastModified = header.getLastModified();
-		PK lastPK = header.getLastPK();
 
 		query = new FlexibleSearchQuery(JirafeCatalogSyncJobPerformable.dataQuery);
-
 		query.setCount(batchSize);
-
 		LOG.debug("Starting JirafeCatalogSyncCronJob job, batchSize={}", batchSize);
 
-		boolean abort = false;
+		Date lastModified = header.getLastModified();
+		PK lastPK = header.getLastPK();
 		while ((data = getCatalogSyncData(query, lastModified, lastPK)) != null)
 		{
 			LOG.debug("Start performing batch, start={}/{}", lastModified, lastPK);
 			for (final ItemSyncTimestampModel item : data)
 			{
 				final ItemModel itemModel = item.getTargetItem();
-				int authFails = 0;
-				for (;;)
+				final List<JirafeDataModel> jirafeDataModels = jirafeCatalogDataModelFactory.fromItemModel(header, itemModel);
+				if (jirafeDataModels != null)
 				{
-					final JirafeDataStatus status = syncStrategy.sync(itemModel);
-					switch (status)
-					{
-						case ACCEPTED:
-							successCount++;
-							break;
-						case REJECTED:
-							failureCount++;
-							break;
-						case NOT_AUTHORIZED:
-							authFailureCount++;
-							if (++authFails < maxRetry)
-							{
-								continue;
-							}
-							abort = true;
-							break;
-					}
-					break;
-				}
-				if (abort)
-				{
-					break;
+					syncStrategy.sync(jirafeDataModels);
 				}
 				lastModified = item.getModifiedtime();
 				lastPK = item.getPk();
 			}
-			if (abort)
-			{
-				break;
-			}
 		}
-		header.setStatus(abort ? JirafeDataStatus.NOT_AUTHORIZED : JirafeDataStatus.ACCEPTED);
+		syncStrategy.flush();
+
+		header.setStatus(JirafeDataStatus.ACCEPTED);
 		header.setLastModified(lastModified);
 		header.setLastPK(lastPK);
 		modelService.save(header);
-
-		LOG.info("JirafeCatalogSyncData sync : completed syncing items. Success={}, Failure={}, AuthFailures={}", new Integer[]
-		{ successCount, failureCount, authFailureCount });
-		if (abort)
-		{
-			LOG.error("JirafeCatalogSyncData sync : Cancelling processing, reached max auth failures ({})",
-					Integer.valueOf(authFailureCount));
-			return new PerformResult(CronJobResult.FAILURE, CronJobStatus.ABORTED);
-		}
-		LOG.debug("Finished performing batch, start={}, batchSize={}", start, batchSize);
 
 		LOG.debug("Finished JirafeCatalogSyncCronJob job.");
 
@@ -187,27 +152,6 @@ public class JirafeCatalogSyncJobPerformable extends AbstractJobPerformable<Jira
 		{
 			return results.getResult();
 		}
-	}
-
-	/**
-	 * Returns the start of where to return results. Separating it out in a method allows an extending class to add
-	 * custom logic.
-	 * 
-	 * @param start
-	 * @return
-	 */
-	protected int getStart(final int start, final int batchSize)
-	{
-		return start + batchSize;
-	}
-
-	/**
-	 * 
-	 */
-	@Override
-	public void setFlexibleSearchService(final FlexibleSearchService flexibleSearchService)
-	{
-		this.flexibleSearchService = flexibleSearchService;
 	}
 
 }

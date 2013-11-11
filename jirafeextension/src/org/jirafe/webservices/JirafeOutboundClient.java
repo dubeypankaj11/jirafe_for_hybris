@@ -3,6 +3,7 @@
  */
 package org.jirafe.webservices;
 
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Resource;
@@ -26,15 +27,20 @@ public class JirafeOutboundClient
 		SUCCESS, FAILURE, NOT_AUTHORIZED
 	}
 
-	public TransactionResult putMessage(final String message, final String type, final boolean isRemove)
+	public TransactionResult putBatch(final String batch, final String site)
 	{
 
-		String endPoint = jirafeMappingsDao.getEndPointName(type);
-		if (endPoint == null)
-		{
-			endPoint = type.toLowerCase();
-		}
-		final Map result = jirafeOAuth2Session.putMessage(message, endPoint, isRemove);
+		final Map result = jirafeOAuth2Session.putMessage(batch, "batch", site);
+
+		return analizeResult(result);
+	}
+
+	public TransactionResult putMessage(final String message, final String type, final String site)
+	{
+
+		final String endPoint = jirafeMappingsDao.getEndPointName(type);
+
+		final Map result = jirafeOAuth2Session.putMessage(message, endPoint, site);
 
 		return analizeResult(result);
 	}
@@ -45,32 +51,38 @@ public class JirafeOutboundClient
 		{
 			return new TransactionResult(STATUS.NOT_AUTHORIZED);
 		}
-		Object errors = result.get("errors");
-		if (errors == null)
-		{
-			errors = result.get("error_type");
-		}
-		if (errors != null)
-		{
-			return new TransactionResult(STATUS.FAILURE, errors);
-		}
-		return new TransactionResult(STATUS.SUCCESS);
+		return new TransactionResult(STATUS.SUCCESS, result);
 	}
 
 	public static class TransactionResult
 	{
+		public TransactionResult analyzeRow(final String type, final int rowNum)
+		{
+			final Map<String, Map> row = ((List<Map>) errors.get(type)).get(rowNum);
+			Map errors = row.get("errors");
+			if (errors == null)
+			{
+				errors = row.get("error_type");
+			}
+			if (errors != null)
+			{
+				return new TransactionResult(STATUS.FAILURE, errors);
+			}
+			return new TransactionResult(STATUS.SUCCESS);
+		}
+
 		protected TransactionResult(final STATUS status)
 		{
 			this.status = status;
 		}
 
-		protected TransactionResult(final STATUS status, final Object errors)
+		protected TransactionResult(final STATUS status, final Map errors)
 		{
 			this.status = status;
 			this.errors = errors;
 		}
 
 		public STATUS status;
-		public Object errors;
+		public Map errors;
 	}
 }

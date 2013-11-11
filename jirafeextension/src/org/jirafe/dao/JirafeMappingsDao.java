@@ -61,7 +61,7 @@ public interface JirafeMappingsDao
 	 */
 	String loadFilter(String type);
 
-	public boolean filter(final String type, final ItemModel itemModel, boolean isRemove);
+	public boolean filter(final String type, final ItemModel itemModel);
 
 	/**
 	 * 

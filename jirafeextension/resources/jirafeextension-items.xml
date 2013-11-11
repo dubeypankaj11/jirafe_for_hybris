@@ -71,6 +71,11 @@
                     </persistence>
 				</attribute>
 
+				<attribute qualifier="site" type="java.lang.String">
+					<description>Site this event refers to</description>
+					<persistence type="property"/>
+				</attribute>
+
 				<attribute qualifier="isRemove" type="java.lang.Boolean">
 					<description>Indicates if this is a removal of data</description>
 					<persistence type="property"/>
@@ -242,9 +247,44 @@
                 </attribute>
                 
 			</attributes>
-
 		</itemtype>
-        
+
+		<itemtype generate="true" code="JirafeChangeTracker"
+			extends="GenericItem" jaloclass="org.jirafe.jalo.data.JirafeChangeTracker"
+			autocreate="true">
+			<deployment table="JirafeChangeTracker" typecode="31347" />
+			<attributes>
+
+				<attribute qualifier="containerPK" type="de.hybris.platform.core.PK">
+					<description>PK of the container.</description>
+					<persistence type="property" />
+				</attribute>
+
+				<attribute qualifier="entryPK" type="de.hybris.platform.core.PK">
+					<description>PK of the entry.</description>
+					<persistence type="property" />
+				</attribute>
+
+				<attribute qualifier="attribute" type="java.lang.String">
+					<description>Name of the attribute.</description>
+					<persistence type="property" />
+				</attribute>
+	
+				<attribute qualifier="value" type="java.lang.Object">
+					<description>Value of the attribute.</description>
+					<persistence type="property" />
+				</attribute>
+
+			</attributes>
+			<indexes>
+				<index name="eaIdx" unique="true">
+					<!-- We only want the oldest change record for each batch --> 
+					<key attribute="entryPK"/>
+					<key attribute="attribute"/>
+				</index>
+			</indexes>
+		</itemtype>
+
         <itemtype generate="true"
             code="JirafeDataSyncCronJob"
             extends="CronJob"

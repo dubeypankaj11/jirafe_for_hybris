@@ -3,18 +3,24 @@
  */
 package org.jirafe.event;
 
-import de.hybris.platform.servicelayer.event.events.AbstractPersistenceEvent;
+import de.hybris.platform.servicelayer.event.events.AbstractEvent;
 import de.hybris.platform.servicelayer.event.impl.AbstractEventListener;
 
 import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
  * @author Larry Ramponi
  * 
  */
-public class JirafeEventListener extends AbstractEventListener<AbstractPersistenceEvent>
+public class JirafeEventListener extends AbstractEventListener<AbstractEvent>
 {
+
+
+	private final static Logger LOG = LoggerFactory.getLogger(JirafeEventListener.class);
 
 	private Set<String> eventTypes;
 
@@ -26,10 +32,11 @@ public class JirafeEventListener extends AbstractEventListener<AbstractPersisten
 	 * .events.AbstractEvent)
 	 */
 	@Override
-	protected void onEvent(final AbstractPersistenceEvent event)
+	protected void onEvent(final AbstractEvent event)
 	{
 		//if(this.eventTypes.contains(event.getSource().))
-		System.out.println("event=" + event);
+		LOG.debug(String.format("intercepted event %s", event.toString()));
+		return;
 	}
 
 	/**

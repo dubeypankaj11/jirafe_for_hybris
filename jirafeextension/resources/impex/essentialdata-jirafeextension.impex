@@ -1,0 +1,8 @@
+$lang=en;;;;
+$catalogVersion=catalogVersion(catalog(id[default='Default']),version[default='Online'])[unique=true,default='Default:Online'];;;;
+
+INSERT_UPDATE StaticLink;code[unique=true];area(code);sortorder;readPrincipals(uid);;url;extensionName;parentLink(code);;
+;jirafeStaticLink;commerce;2;employeegroup;mcc-icon-b2c.png;http://www.jirafe.com;;;;
+
+INSERT_UPDATE StaticLink;code[unique=true];title[lang=$lang];description[lang=$lang];
+;jirafeStaticLink;Jirafe Cockpit;Jirafe management extension.;

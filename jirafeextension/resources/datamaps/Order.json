@@ -1,0 +1,50 @@
+{
+    "__init__": "@{
+        jirafeModelToMapConverter.toMap(model, 'AbstractOrderEntry', ['__init__'])
+        return null
+    }",
+    "__sites__": "site.uid",
+    "id": "pk@{return pk.toString()}",
+    "order_number": "code",
+    "customer": "user@{
+        return jirafeModelToMapConverter.toMap(user, 'Customer', null)
+    }",
+    "order_date": "date@{return dateFormat.format(date)}",
+    "create_date": "@{
+        createDate = dateFormat.format(model?.creationtime ?: model?.modifiedtime ?: new Date())
+        return createDate
+    }",
+    "change_date": "@{
+        return model?.modifiedtime ? dateFormat.format(model?.modifiedtime) : createDate
+    }",
+    "raw_status": "status@{status?.code}",
+    "status": "status@{
+        orderStatus = [
+            CANCELLED: 'cancelled',
+            PAYMENT_CAPTURED: 'accepted',
+            COMPLETED: 'accepted',
+        ][status?.code] ?: null
+        return orderStatus
+    }",
+    "subtotal": "subtotal",
+    "total": "totalPrice",
+    "total_tax": "totalTax",
+    "total_shipping": "deliveryCost",
+    "total_payment_cost": "paymentCost",
+    "total_discounts": "totalDiscounts",
+    "currency": "currency.isocode",
+    "items": "entries@{
+        return abstractOrderEntryItems(entries)
+    }",
+    "previous_items": "@{
+        return abstractOrderEntryPreviousItems(model)
+    }",
+    "delivery_address": "deliveryAddress@{
+        if (!deliveryAddress) return null
+        return jirafeModelToMapConverter.toMap(deliveryAddress, 'Address', null)
+    }",
+    "payment_address": "paymentAddress@{
+        if (!paymentAddress) return null
+        return jirafeModelToMapConverter.toMap(paymentAddress, 'Address', null)
+    }"
+}

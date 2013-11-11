@@ -11,5 +11,8 @@
 	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/platform"/>
 	<classpathentry kind="lib" path="lib/gson-2.2.3.jar"/>
 	<classpathentry kind="lib" path="web/webroot/WEB-INF/lib/spring-webmvc-3.1.0.RELEASE.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/acceleratorservices"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/cms2"/>
+	<classpathentry kind="src" path="/basecommerce"/>
 	<classpathentry kind="output" path="eclipsebin/notused"/>
 </classpath>

@@ -1,0 +1,149 @@
+INSERT_UPDATE ServicelayerJob;code[unique=true];springId
+;jirafeDataSyncJob;jirafeDataSyncJob;jirafeDataSyncJob
+;jirafeCatalogSyncJob;jirafeCatalogSyncJob;jirafeCatalogSyncJob
+;jirafeDataCleanUpJob;jirafeDataCleanUpJob;jirafeDataCleanUpJob
+;jirafeHeartbeatJob;jirafeHeartbeatJob;jirafeHeartbeatJob
+
+INSERT_UPDATE JirafeDataSyncCronJob; code[unique=true];job(code);singleExecutable;sessionLanguage(isocode)
+;jirafeDataSyncCronJob;jirafeDataSyncJob;false;en
+
+INSERT_UPDATE JirafeCatalogSyncCronJob; code[unique=true];job(code);singleExecutable;sessionLanguage(isocode)
+;jirafeCatalogSyncCronJob;jirafeCatalogSyncJob;false;en
+
+INSERT_UPDATE JirafeDataCleanUpCronJob; code[unique=true];job(code);singleExecutable;sessionLanguage(isocode)
+;jirafeDataCleanUpCronJob;jirafeDataCleanUpJob;false;en
+
+INSERT_UPDATE JirafeHeartbeatCronJob; code[unique=true];nodeID;job(code);singleExecutable;sessionLanguage(isocode)
+;jirafeHeartbeatCronJob  ; 0;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob01; 1;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob02; 2;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob03; 3;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob04; 4;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob05; 5;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob06; 6;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob07; 7;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob08; 8;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob09; 9;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob10;10;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob11;11;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob12;12;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob13;13;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob14;14;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob15;15;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob16;16;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob17;17;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob18;18;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob19;19;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob20;20;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob21;21;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob22;22;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob23;23;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob24;24;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob25;25;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob26;26;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob27;27;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob28;28;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob29;29;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob30;30;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob31;31;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob32;32;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob33;33;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob34;34;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob35;35;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob36;36;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob37;37;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob38;38;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob39;39;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob40;40;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob41;41;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob42;42;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob43;43;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob44;44;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob45;45;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob46;46;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob47;47;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob48;48;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob49;49;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob50;50;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob51;51;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob52;52;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob53;53;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob54;54;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob55;55;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob56;56;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob57;57;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob58;58;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob59;59;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob60;60;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob61;61;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob62;62;jirafeHeartbeatJob;false;en
+;jirafeHeartbeatCronJob63;63;jirafeHeartbeatJob;false;en
+
+INSERT_UPDATE Trigger;cronJob(code)[unique=true];cronExpression;second;minute;hour;day;month;year;relative;active;maxAcceptableDelay
+;jirafeCatalogSyncCronJob;; 0; 5;0;-1;-1;-1;true;true;-1
+;jirafeDataCleanUpCronJob;; 0;60;0;-1;-1;-1;true;true;-1
+;jirafeDataSyncCronJob   ;; 0; 5;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob  ;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob01;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob02;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob03;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob04;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob05;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob06;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob07;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob08;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob09;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob10;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob11;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob12;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob13;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob14;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob15;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob16;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob17;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob18;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob19;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob20;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob21;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob22;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob23;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob24;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob25;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob26;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob27;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob28;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob29;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob30;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob31;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob32;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob33;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob34;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob35;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob36;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob37;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob38;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob39;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob40;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob41;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob42;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob43;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob44;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob45;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob46;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob47;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob48;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob49;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob50;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob51;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob52;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob53;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob54;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob55;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob56;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob57;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob58;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob59;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob60;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob61;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob62;; 0;30;0;-1;-1;-1;true;true;-1
+;jirafeHeartbeatCronJob63;; 0;30;0;-1;-1;-1;true;true;-1

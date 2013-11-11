@@ -1,0 +1,409 @@
+# Generated file DO NOT EDIT
+
+INSERT_UPDATE JirafeMappingDefinitions;type;definition;filter;endPointName[unique=true]
+;AbstractOrderEntry;"{
+    ""__init__"": ""@{
+        import de.hybris.platform.core.model.order.AbstractOrderEntryModel
+        abstractOrderEntryItems = {
+            entries ->
+            def ret = []
+            changedItem = [:]
+            for (def entry in entries) {
+                ret += jirafeModelToMapConverter.toMap(entry, 'AbstractOrderEntry', null)
+            }
+            return ret.size > 0 ? ret : null
+        }
+        abstractOrderEntryPreviousItems = {
+            model ->
+            def ret = []
+            def done = new HashSet()
+            def changedItems = jirafeModelToMapConverter.changedItems(model)
+            for (def item in model.entries) {
+                changedItem = changedItems[item.product.pk] ?: [:]
+                done += item.product.pk
+                if (changedItem && !changedItem.modifiedtime) continue
+                ret += jirafeModelToMapConverter.toMap(item, 'AbstractOrderEntry', null)
+            }
+            for (def key in changedItems.keySet()) {
+                if (key in done) continue
+                changedItem = changedItems[key]
+                ret += jirafeModelToMapConverter.toMap(new AbstractOrderEntryModel(), 'AbstractOrderEntry', null)
+            }
+            return ret.size > 0 ? ret : null
+        }
+        return null
+    }"",
+    ""id"": ""pk@{
+        return (changedItem.pk ?: pk).toString()
+    }"",
+    ""create_date"": ""creationtime@{
+        return dateFormat.format(changedItem.creationtime ?: creationtime)
+    }"",
+    ""change_date"": ""modifiedtime@{
+        return dateFormat.format(changedItem.modifiedtime ?: modifiedtime)
+    }"",
+    ""cart_item_number"": ""@{
+        import de.hybris.platform.core.model.order.OrderModel
+        if (model.order instanceof OrderModel) return null
+        return changedItem.entrynumber ?: model.entryNumber.toString()
+    }"",
+    ""order_item_number"": ""@{
+        import de.hybris.platform.core.model.order.CartModel
+        if (model.order instanceof CartModel) return null
+        return changedItem.entrynumber ?: model.entryNumber.toString()
+    }"",
+    ""quantity"": ""quantity@{
+        return changedItem.quantity ?: quantity
+    }"",
+    ""status"": ""quantity@{
+        return (changedItem.quantity ?: quantity) > 0 ? 'accepted' : 'cancelled'
+    }"",
+    ""price"": ""totalPrice@{
+        return changedItem.totalprice ?: totalPrice
+    }"",
+    ""discount_price"": ""discountValues@{
+        import de.hybris.platform.util.DiscountValue
+        return DiscountValue.sumAppliedValues(
+            changedItem.discountvalues ?: discountValues
+        )
+    }"",
+    ""product"": ""product@{
+        return jirafeModelToMapConverter.toMap(
+            changedItem.product ?: product, 'Product', null
+        )
+    }""
+}
+";"return false
+";abstractorderentry
+;Address;"{
+    ""id"": ""pk@{return pk.toString()}"",
+    ""address1"": ""line1"",
+    ""address2"": ""line2@{return line2 ?: null}"",
+    ""city"": ""town"",
+    ""state"": ""region@{
+        if (region?.isocodeShort && !region.isocodeShort?.isNumber()) return region.isocodeShort
+        return region?.name ?: null
+    }"",
+    ""postalcode"": ""postalcode@{return postalcode ?: null}"",
+    ""country"": ""country@{return country?.isocode}""
+}
+";"return false
+";address
+;Cart;"{
+    ""__init__"": ""@{
+        jirafeModelToMapConverter.toMap(model, 'AbstractOrderEntry', ['__init__'])
+        return null
+    }"",
+    ""__sites__"": ""site.uid"",
+    ""cookies"": ""@{
+        parsedCookies = [:]
+        for (def cookie in cookies) {
+            parsedCookies[cookie.name] = cookie.value.toString()
+        }
+        if (!parsedCookies) return null
+        return parsedCookies
+    }"",
+    ""visit"": ""@{
+        if (!parsedCookies) return null
+        return [
+            visit_id:         parsedCookies['jirafe_vid']   ?: '',
+            visitor_id:       parsedCookies['jirafe_vis']   ?: '',
+            pageview_id:      parsedCookies['jirafe_pvid']  ?: '',
+            last_pageview_id: parsedCookies['jirafe_lpvid'] ?: '',
+        ]
+    }"",
+    ""id"": ""pk@{return pk.toString()}"",
+    ""cart_id"": ""code"",
+    ""customer"": ""user@{
+        return jirafeModelToMapConverter.toMap(user, 'Customer', null)
+    }"",
+    ""create_date"": ""@{
+        createDate = dateFormat.format(model?.creationtime ?: model?.modifiedtime ?: new Date())
+        return createDate
+    }"",
+    ""change_date"": ""@{
+        return model?.modifiedtime ? dateFormat.format(model?.modifiedtime) : createDate
+    }"",
+    ""subtotal"": ""subtotal"",
+    ""total"": ""totalPrice"",
+    ""total_tax"": ""totalTax"",
+    ""total_shipping"": ""deliveryCost"",
+    ""total_payment_cost"": ""paymentCost"",
+    ""total_discounts"": ""totalDiscounts"",
+    ""currency"": ""currency.isocode"",
+    ""items"": ""entries@{
+        return abstractOrderEntryItems(entries)
+    }"",
+    ""previous_items"": ""@{
+        return abstractOrderEntryPreviousItems(model)
+    }""
+}
+";"return model?.calculated && model?.entries?.size() > 0
+";cart
+;Category;"{
+    ""__sites__"": ""catalogVersion.catalog.baseStores@{
+        def sites = []
+        for (def store in baseStores) {
+            sites.add(store.uid)
+        }
+        return sites
+    }"",
+    ""id"": ""pk@{return pk.toString()}"",
+    ""name"": ""name"",
+    ""create_date"": ""@{
+        createDate = dateFormat.format(model?.creationtime ?: model?.modifiedtime ?: new Date())
+        return createDate
+    }"",
+    ""change_date"": ""@{
+        return model?.modifiedtime ? dateFormat.format(model?.modifiedtime) : createDate
+    }"",
+    ""parent_categories"": [
+        {
+            ""_path"": ""supercategories""
+        },
+        {
+            ""id"": ""pk@{return pk.toString()}""
+        }
+    ]
+}
+";"return model?.getCatalogVersion()?.getActive()
+";category
+;Customer;"{
+    ""__sites__"": ""@{return '*'}"",
+    ""cookies"": ""@{
+        parsedCookies = [:]
+        for (def cookie in cookies) {
+            parsedCookies[cookie.name] = cookie.value.toString()
+        }
+        if (!parsedCookies) return null
+        return parsedCookies
+    }"",
+    ""create_date"": ""@{
+        createDate = dateFormat.format(model?.creationtime ?: model?.modifiedtime ?: new Date())
+        return createDate
+    }"",
+    ""change_date"": ""@{
+        return model?.modifiedtime ? dateFormat.format(model?.modifiedtime) : createDate
+    }"",
+    ""id"": ""uid"",
+    ""email"" : ""@{
+        if (model.hasProperty('contactEmail')) {
+            contactEmail = model.contactEmail
+            if (contactEmail != 'demo@example.com')
+                return contactEmail
+        }
+        for (def address in model.addresses) {
+            if (address.email) return address.email
+        }
+        return null
+    }"",
+    ""name"": ""name"",
+    ""first_name"": ""name@{return name?.replaceFirst(' [^ ]+$', '')}"",
+    ""last_name"": ""name@{return name?.replaceFirst('^.* ', '')}"",
+    ""company"": ""@{
+        return model.hasProperty('defaultB2BUnit') ?
+            model.defaultB2BUnit?.name : null
+    }"",
+    ""active_flag"": ""loginDisabled@{return ! loginDisabled}""
+}
+";"return true
+";customer
+;Employee;"{
+    ""__sites__"": ""@{return '*'}"",
+    ""id"": ""uid"",
+    ""name"": ""name"",
+    ""first_name"": ""name@{return name?.replaceFirst(' [^ ]+$', '')}"",
+    ""last_name"": ""name@{return name?.replaceFirst('^.* ', '')}"",
+    ""email"" : ""@{
+        if (model.hasProperty('contactEmail')) {
+            contactEmail = model.contactEmail
+            if (contactEmail != 'demo@example.com')
+                return contactEmail
+        }
+        for (def address in model.addresses) {
+            if (address.email) return address.email
+        }
+        return null
+    }"",
+    ""active_flag"": ""loginDisabled@{return ! loginDisabled}"",
+    ""create_date"": ""@{
+        createDate = dateFormat.format(model?.creationtime ?: model?.modifiedtime ?: new Date())
+        return createDate
+    }"",
+    ""change_date"": ""@{
+        return model?.modifiedtime ? dateFormat.format(model?.modifiedtime) : createDate
+    }""
+}
+";"return true
+";employee
+;Order;"{
+    ""__init__"": ""@{
+        jirafeModelToMapConverter.toMap(model, 'AbstractOrderEntry', ['__init__'])
+        return null
+    }"",
+    ""__sites__"": ""site.uid"",
+    ""id"": ""pk@{return pk.toString()}"",
+    ""order_number"": ""code"",
+    ""customer"": ""user@{
+        return jirafeModelToMapConverter.toMap(user, 'Customer', null)
+    }"",
+    ""order_date"": ""date@{return dateFormat.format(date)}"",
+    ""create_date"": ""@{
+        createDate = dateFormat.format(model?.creationtime ?: model?.modifiedtime ?: new Date())
+        return createDate
+    }"",
+    ""change_date"": ""@{
+        return model?.modifiedtime ? dateFormat.format(model?.modifiedtime) : createDate
+    }"",
+    ""raw_status"": ""status@{status?.code}"",
+    ""status"": ""status@{
+        orderStatus = [
+            CANCELLED: 'cancelled',
+            PAYMENT_CAPTURED: 'accepted',
+            COMPLETED: 'accepted',
+        ][status?.code] ?: null
+        return orderStatus
+    }"",
+    ""subtotal"": ""subtotal"",
+    ""total"": ""totalPrice"",
+    ""total_tax"": ""totalTax"",
+    ""total_shipping"": ""deliveryCost"",
+    ""total_payment_cost"": ""paymentCost"",
+    ""total_discounts"": ""totalDiscounts"",
+    ""currency"": ""currency.isocode"",
+    ""items"": ""entries@{
+        return abstractOrderEntryItems(entries)
+    }"",
+    ""previous_items"": ""@{
+        return abstractOrderEntryPreviousItems(model)
+    }"",
+    ""delivery_address"": ""deliveryAddress@{
+        if (!deliveryAddress) return null
+        return jirafeModelToMapConverter.toMap(deliveryAddress, 'Address', null)
+    }"",
+    ""payment_address"": ""paymentAddress@{
+        if (!paymentAddress) return null
+        return jirafeModelToMapConverter.toMap(paymentAddress, 'Address', null)
+    }""
+}
+";"import de.hybris.platform.util.Config
+import de.hybris.platform.core.enums.OrderStatus
+return (
+    !model.originalVersion &&   // Skip copies of changed orders
+    model.status in [           // These are the only statuses we care about
+        OrderStatus.CANCELLED,
+        // Default Hybris 4 doesn't go all the way to COMPLETED
+        Config.getParameter(""build.version"").startsWith('4.') ?
+            OrderStatus.PAYMENT_CAPTURED :
+            OrderStatus.COMPLETED,
+    ]
+)
+";order
+;Product;"{
+    ""__sites__"": ""@{
+        def baseStores = model?.catalogVersion?.catalog?.baseStores
+        def sites = []
+        for (def store in baseStores) {
+            sites.add(store.uid)
+        }
+        return sites
+    }"",
+    ""id"": ""pk@{return pk.toString()}"",
+    ""is_product"": ""@{return !model.hasProperty('baseProduct')}"",
+    ""is_sku"": ""@{return model.variants == []}"",
+    ""inactive"": ""approvalStatus@{return approvalStatus?.code != 'approved'}"",
+    ""catalog"": ""@{
+        def version = model.catalogVersion
+        def catalog = version?.catalog
+        return [
+            id: catalog.id?.toString(),
+            name: catalog.name,
+            version_id: version?.version?.toString()
+        ]
+    }"",
+    ""name"": ""name"",
+    ""code"": ""code"",
+    ""ancestors"": ""@{
+        if (!model.hasProperty('baseProduct')) return null
+        def ancestry = []
+        while (model.hasProperty('baseProduct')) {
+            model = model.baseProduct
+            ancestry.add(model.pk.toString())
+        }
+        return ancestry
+    }"",
+    ""base_product"": ""@{
+        if (!model.hasProperty('baseProduct')) return null
+        def baseProduct = model.baseProduct
+        while (baseProduct.hasProperty('baseProduct')) {
+            baseProduct = baseProduct.baseProduct
+        }
+        return [
+            id: baseProduct?.pk.toString(),
+            code: baseProduct?.code,
+            name: baseProduct?.name
+        ]
+    }"",
+    ""vendors"": [
+        {
+            ""_path"": ""vendors""
+        },
+        {
+            ""id"": ""pk@{return pk.toString()}"",
+            ""name"": ""name""
+        }
+    ],
+    ""brand"": ""manufacturerName"",
+    ""rating"": ""averageRating"",
+    ""create_date"": ""@{
+        createDate = dateFormat.format(model?.creationtime ?: model?.modifiedtime ?: new Date())
+        return createDate
+    }"",
+    ""change_date"": ""@{
+        return model?.modifiedtime ? dateFormat.format(model?.modifiedtime) : createDate
+    }"",
+    ""images"": ""@{
+        def url = model?.picture?.URL
+        import de.hybris.platform.util.Config
+        def prefix = Config.getString('jirafe.imageURLPrefix', null)
+        return url ? [[url: prefix + url]] : null
+    }"",
+    ""categories"": [
+        {
+            ""_path"": ""supercategories""
+        },
+        {
+            ""id"": ""pk@{return pk.toString()}"",
+            ""name"": ""name""
+        }
+    ],
+    ""attributes"": ""@{
+        if (!model.hasProperty('baseProduct')) return null
+        def ret = []
+        def vadms = model.baseProduct?.variantType?.variantAttributes
+        for (def vadm in vadms) {
+            def name = vadm.name
+            def m = model
+            for (;;) {
+                def value
+                try {
+                    value = modelService.getAttributeValue(m, name)
+                } catch (e) {
+                }
+                if (value) {
+                    ret.add([
+                        id: name,
+                        name: name,
+                        value: value,
+                    ])
+                    break
+                }
+                if (!m.hasProperty('baseProduct')) break
+                m = m.baseProduct
+            }
+        }
+        return ret == [] ? null : ret
+    }""
+}
+";"return model?.getCatalogVersion()?.getActive()
+";product

@@ -35,7 +35,7 @@ public class ConverterTest extends ServicelayerTransactionalTest
 	{
 		final ItemModel model = createTestOrder();
 
-		assertNotNull(jirafeJsonConverter.toJson(new JirafeDataDto("Order", model, false)));
+		assertNotNull(jirafeJsonConverter.toJson(new JirafeDataDto("Order", model).getMap()));
 	}
 
 	ItemModel createTestOrder()

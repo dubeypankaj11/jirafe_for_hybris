@@ -43,11 +43,11 @@ public class JirafeThreadFactory implements ThreadFactory
 				try
 				{
 					Registry.setCurrentTenant(currentTenant);
-					// Run as admin user, remove restrictions
-					JaloSession.getCurrentSession().setUser(
-							JaloSession.getCurrentSession().getUserManager().getUserByLogin(jirafeUser));
-					JaloSession.getCurrentSession().setTimeout(-1);
-					JaloSession.getCurrentSession().activate();
+					// Run as jirafeuser
+					final JaloSession currentSession = JaloSession.getCurrentSession();
+					currentSession.setUser(currentSession.getUserManager().getUserByLogin(jirafeUser));
+					currentSession.setTimeout(-1);
+					currentSession.activate();
 					runnable.run();
 				}
 

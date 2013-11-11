@@ -1,0 +1,49 @@
+{
+    "__init__": "@{
+        jirafeModelToMapConverter.toMap(model, 'AbstractOrderEntry', ['__init__'])
+        return null
+    }",
+    "__sites__": "site.uid",
+    "cookies": "@{
+        parsedCookies = [:]
+        for (def cookie in cookies) {
+            parsedCookies[cookie.name] = cookie.value.toString()
+        }
+        if (!parsedCookies) return null
+        return parsedCookies
+    }",
+    "visit": "@{
+        if (!parsedCookies) return null
+        return [
+            visit_id:         parsedCookies['jirafe_vid']   ?: '',
+            visitor_id:       parsedCookies['jirafe_vis']   ?: '',
+            pageview_id:      parsedCookies['jirafe_pvid']  ?: '',
+            last_pageview_id: parsedCookies['jirafe_lpvid'] ?: '',
+        ]
+    }",
+    "id": "pk@{return pk.toString()}",
+    "cart_id": "code",
+    "customer": "user@{
+        return jirafeModelToMapConverter.toMap(user, 'Customer', null)
+    }",
+    "create_date": "@{
+        createDate = dateFormat.format(model?.creationtime ?: model?.modifiedtime ?: new Date())
+        return createDate
+    }",
+    "change_date": "@{
+        return model?.modifiedtime ? dateFormat.format(model?.modifiedtime) : createDate
+    }",
+    "subtotal": "subtotal",
+    "total": "totalPrice",
+    "total_tax": "totalTax",
+    "total_shipping": "deliveryCost",
+    "total_payment_cost": "paymentCost",
+    "total_discounts": "totalDiscounts",
+    "currency": "currency.isocode",
+    "items": "entries@{
+        return abstractOrderEntryItems(entries)
+    }",
+    "previous_items": "@{
+        return abstractOrderEntryPreviousItems(model)
+    }"
+}

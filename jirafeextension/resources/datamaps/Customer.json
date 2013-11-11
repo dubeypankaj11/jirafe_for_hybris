@@ -1,16 +1,15 @@
 {
+    "__sites__": "@{return '*'}",
     "cookies": "@{
         parsedCookies = [:]
-        for (cookie in cookies) {
+        for (def cookie in cookies) {
             parsedCookies[cookie.name] = cookie.value.toString()
         }
         if (!parsedCookies) return null
         return parsedCookies
     }",
-    "visit_id": "@{return parsedCookies['jirafe_vid']}",
-    "pageview_id": "@{return parsedCookies['jirafe_pvid']}",
     "create_date": "@{
-        createDate = dateFormat.format(model?.creationtime ?: new Date())
+        createDate = dateFormat.format(model?.creationtime ?: model?.modifiedtime ?: new Date())
         return createDate
     }",
     "change_date": "@{
@@ -23,7 +22,7 @@
             if (contactEmail != 'demo@example.com')
                 return contactEmail
         }
-        for (address in model.addresses) {
+        for (def address in model.addresses) {
             if (address.email) return address.email
         }
         return null
@@ -31,5 +30,9 @@
     "name": "name",
     "first_name": "name@{return name?.replaceFirst(' [^ ]+$', '')}",
     "last_name": "name@{return name?.replaceFirst('^.* ', '')}",
+    "company": "@{
+        return model.hasProperty('defaultB2BUnit') ?
+            model.defaultB2BUnit?.name : null
+    }",
     "active_flag": "loginDisabled@{return ! loginDisabled}"
 }

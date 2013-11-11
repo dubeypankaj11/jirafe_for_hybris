@@ -4,13 +4,9 @@
 package org.jirafe.strategy;
 
 import de.hybris.platform.core.model.ItemModel;
-import de.hybris.platform.core.model.order.CartModel;
-import de.hybris.platform.jalo.JaloObjectNoLongerValidException;
-import de.hybris.platform.servicelayer.model.ModelService;
 
-import javax.annotation.Resource;
+import java.util.Map;
 
-import org.jirafe.converter.JirafeConvertException;
 import org.jirafe.converter.JirafeJsonConverter;
 import org.jirafe.dao.JirafeDataDao;
 import org.jirafe.dto.JirafeDataDto;
@@ -29,21 +25,16 @@ public abstract class BasePersistStrategy implements JirafeDataPersistStrategy
 {
 	private final static Logger log = LoggerFactory.getLogger(BasePersistStrategy.class);
 
-	private final static String emptyJson = "{}";
-	private final static String errorJson = "{'error':'%s'}";
-
 	private JirafeDataDao jirafeDataDao;
 	private JirafeJsonConverter jirafeJsonConverter;
 
-	@Resource(name = "modelService")
-	protected ModelService modelService;
-
 	protected void doPersist(final JirafeDataDto jirafeDataDto)
 	{
+		Map mapRepresentation;
 		String jsonRepresentation;
 		final ItemModel itemModel = jirafeDataDto.getItemModel();
 
-		if (itemModel == null || modelService.isRemoved(itemModel))
+		if (itemModel == null)
 		{
 			return;
 		}
@@ -51,23 +42,8 @@ public abstract class BasePersistStrategy implements JirafeDataPersistStrategy
 		try
 		{
 			log.debug("About to call JsonConverter");
-			jsonRepresentation = jirafeJsonConverter.toJson(jirafeDataDto);
-		}
-		catch (final JaloObjectNoLongerValidException e)
-		{
-			// It's ok to lose a cart
-			if (itemModel instanceof CartModel)
-			{
-				// We'll probably downgrade this to a debug message
-				log.info(e.getMessage());
-				return;
-			}
-			throw e;
-		}
-		catch (final JirafeConvertException e)
-		{
-			log.error("Failed to generate json due to: {}", e.getMessage());
-			return;
+			mapRepresentation = jirafeDataDto.getMap();
+			jsonRepresentation = jirafeJsonConverter.toJson(mapRepresentation);
 		}
 		catch (final Exception e)
 		{
@@ -77,9 +53,16 @@ public abstract class BasePersistStrategy implements JirafeDataPersistStrategy
 
 		try
 		{
-			log.debug("JsonConverter returned: {}", jsonRepresentation);
-			jirafeDataDao.save(jirafeDataDto.getJirafeTypeCode(), itemModel.getPk().toString(), jsonRepresentation,
-					jirafeDataDto.getIsRemove());
+			final String[] sites = jirafeJsonConverter.getSites(mapRepresentation);
+			log.debug("JsonConverter returned: {} {}", sites, jsonRepresentation);
+			if (sites != null)
+			{
+				for (final String site : sites)
+				{
+					jirafeDataDao.save(jirafeDataDto.getJirafeTypeCode(), itemModel.getPk().toString(), jsonRepresentation, site,
+							false);
+				}
+			}
 		}
 		catch (final Exception e)
 		{

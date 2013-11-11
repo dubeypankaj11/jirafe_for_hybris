@@ -3,69 +3,119 @@
  */
 package org.jirafe.webservices;
 
+import de.hybris.platform.cms2.exceptions.CMSItemNotFoundException;
+import de.hybris.platform.cms2.model.site.CMSSiteModel;
+import de.hybris.platform.cms2.servicelayer.services.CMSSiteService;
+import de.hybris.platform.core.Registry;
 import de.hybris.platform.util.Config;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 
 /**
  * @author alex
  * 
  */
+@Component("connectionConfig")
 public class OAuth2ConnectionConfig
 {
-	private String clientId;
-	private String clientSecret;
-	private String username;
-	private String password;
-	private String accessToken;
+	private static final Logger log = LoggerFactory.getLogger(OAuth2ConnectionConfig.class);
 
-	private String siteId;
+	private final String clientId;
+	private final String clientSecret;
+	private final String username;
+	private final String password;
+	private final String accessToken;
 
-	private String authServerUrl;
-	private String authServerAuthorize;
-	private String authServerAccessToken;
+	private final String siteId;
+	private String[] siteIds;
+	private HashMap<String, String> siteIdMap;
 
-	private String eventApiUrl;
+	private final String authServerUrl;
+	private final String authServerAuthorize;
+	private final String authServerAccessToken;
 
-	private int timeOut;
+	private final String eventApiUrl;
 
-	public OAuth2ConnectionConfig(final String clientId, //
-			final String clientSecret,//
-			final String username,//
-			final String password,//
-			final String accessToken,//
-			final String siteId,//
-			final String authServerUrl,//
-			final String authServerAuthorize,//
-			final String authServerAccessToken,//
-			final String eventApiUrl, //
-			final int timeOut)
-	{
-		this.clientId = clientId;
-		this.clientSecret = clientSecret;
-		this.username = username;
-		this.password = password;
-		this.accessToken = accessToken;
-		this.siteId = siteId;
-		this.authServerUrl = authServerUrl;
-		this.authServerAuthorize = authServerAuthorize;
-		this.authServerAccessToken = authServerAccessToken;
-		this.eventApiUrl = eventApiUrl;
-		this.timeOut = timeOut;
-	}
+	private final int timeOut;
+
+	final static String SITE_PREFIX = "jirafe.site.id.";
 
 	public OAuth2ConnectionConfig()
 	{
-		this(Config.getString("jirafe.outboundConnectionConfig.client_id", ""),//
-				Config.getString("jirafe.outboundConnectionConfig.client_secret", ""),//
-				Config.getString("jirafe.outboundConnectionConfig.username", ""),//
-				Config.getString("jirafe.outboundConnectionConfig.password", ""),//
-				Config.getString("jirafe.outboundConnectionConfig.access_token", null),//
-				Config.getString("jirafe.outboundConnectionConfig.site_id", ""),//
-				Config.getString("jirafe.outboundConnectionConfig.auth_server_url", ""),//
-				Config.getString("jirafe.outboundConnectionConfig.auth_server_authorize", ""),//
-				Config.getString("jirafe.outboundConnectionConfig.auth_server_access_token", ""),//
-				Config.getString("jirafe.outboundConnectionConfig.event_api_url", ""),//
-				Config.getInt("jirafe.outboundConnectionConfig.time_out", 30000));
+		clientId = Config.getString("jirafe.outboundConnectionConfig.client_id", "");
+		clientSecret = Config.getString("jirafe.outboundConnectionConfig.client_secret", "");
+		username = Config.getString("jirafe.outboundConnectionConfig.username", "");
+		password = Config.getString("jirafe.outboundConnectionConfig.password", "");
+		accessToken = Config.getString("jirafe.outboundConnectionConfig.access_token", null);
+		authServerUrl = Config.getString("jirafe.outboundConnectionConfig.auth_server_url", "");
+		authServerAuthorize = Config.getString("jirafe.outboundConnectionConfig.auth_server_authorize", "");
+		authServerAccessToken = Config.getString("jirafe.outboundConnectionConfig.auth_server_access_token", "");
+		eventApiUrl = Config.getString("jirafe.outboundConnectionConfig.event_api_url", "");
+		timeOut = Config.getInt("jirafe.outboundConnectionConfig.time_out", 30000);
+
+		siteId = Config.getString("jirafe.site.id", "");
+	}
+
+	public void initSiteIdMap()
+	{
+		final String[] blacklistedSiteIds = StringUtils.split(Config.getString("jirafe.site.ids.blacklist", ""), ",");
+		siteIdMap = new HashMap<String, String>();
+		final Map<String, String> hostToSite = Config.getParametersByPattern(SITE_PREFIX);
+		final CMSSiteService cmsSiteService = (CMSSiteService) Registry.getApplicationContext().getBean("cmsSiteService");
+		// Find site ids we've assigned them
+		for (final String key : hostToSite.keySet())
+		{
+			final String siteId = hostToSite.get(key);
+			if (ArrayUtils.contains(blacklistedSiteIds, siteId))
+			{
+				log.debug("Skipping blacklisted site {}={}", key, siteId);
+				continue;
+			}
+			final String host = key.substring(SITE_PREFIX.length());
+			final String spec = "http://" + host;
+			try
+			{
+				final CMSSiteModel cmsSiteModel = cmsSiteService.getSiteForURL(new URL(spec));
+				final String siteName = cmsSiteModel.getUid();
+				log.debug("Assigning site id {} to {}", siteId, siteName);
+				siteIdMap.put(siteName, siteId);
+			}
+			catch (final CMSItemNotFoundException e)
+			{
+				log.error(e.getMessage());
+			}
+			catch (final MalformedURLException e)
+			{
+				log.error(e.getMessage());
+			}
+		}
+		// Warn about any missing site ids and default them to the default site id
+		for (final CMSSiteModel cmsSiteModel : cmsSiteService.getSites())
+		{
+			log.debug("Checking site {}", cmsSiteModel.getUid());
+			if (!cmsSiteModel.getActive().booleanValue())
+			{
+				continue;
+			}
+			final String siteName = cmsSiteModel.getUid();
+			if (!siteIdMap.containsKey(siteName))
+			{
+				log.warn("Missing site ID for site {}, using default site ID", siteName);
+				siteIdMap.put(siteName, siteId);
+			}
+		}
+
+		siteIds = siteIdMap.keySet().toArray(new String[0]);
 	}
 
 	/**
@@ -77,29 +127,11 @@ public class OAuth2ConnectionConfig
 	}
 
 	/**
-	 * @param clientId
-	 *           the clientId to set
-	 */
-	public void setClientId(final String clientId)
-	{
-		this.clientId = clientId;
-	}
-
-	/**
 	 * @return the clientSecret
 	 */
 	public String getClientSecret()
 	{
 		return clientSecret;
-	}
-
-	/**
-	 * @param clientSecret
-	 *           the clientSecret to set
-	 */
-	public void setClientSecret(final String clientSecret)
-	{
-		this.clientSecret = clientSecret;
 	}
 
 	/**
@@ -111,29 +143,11 @@ public class OAuth2ConnectionConfig
 	}
 
 	/**
-	 * @param username
-	 *           the username to set
-	 */
-	public void setUsername(final String username)
-	{
-		this.username = username;
-	}
-
-	/**
 	 * @return the password
 	 */
 	public String getPassword()
 	{
 		return password;
-	}
-
-	/**
-	 * @param password
-	 *           the password to set
-	 */
-	public void setPassword(final String password)
-	{
-		this.password = password;
 	}
 
 	/**
@@ -145,16 +159,7 @@ public class OAuth2ConnectionConfig
 	}
 
 	/**
-	 * @param accessToken
-	 *           the access token to set
-	 */
-	public void setAccessToken(final String accessToken)
-	{
-		this.accessToken = accessToken;
-	}
-
-	/**
-	 * @return the siteId
+	 * @return the default siteId
 	 */
 	public String getSiteId()
 	{
@@ -162,12 +167,39 @@ public class OAuth2ConnectionConfig
 	}
 
 	/**
-	 * @param siteId
-	 *           the siteId to set
+	 * @return the siteIds
 	 */
-	public void setSiteId(final String siteId)
+	public String[] getSiteIds()
 	{
-		this.siteId = siteId;
+		if (siteIds == null)
+		{
+			initSiteIdMap();
+		}
+		return siteIds;
+	}
+
+	/**
+	 * @return the siteId
+	 */
+	public String getSiteId(final String site)
+	{
+		if (!StringUtils.isEmpty(site))
+		{
+			return getSiteIdMap().get(site);
+		}
+		return siteId;
+	}
+
+	/**
+	 * @return the siteIds
+	 */
+	public HashMap<String, String> getSiteIdMap()
+	{
+		if (siteIdMap == null)
+		{
+			initSiteIdMap();
+		}
+		return siteIdMap;
 	}
 
 	/**
@@ -179,29 +211,11 @@ public class OAuth2ConnectionConfig
 	}
 
 	/**
-	 * @param authServerUrl
-	 *           the authServerUrl to set
-	 */
-	public void setAuthServerUrl(final String authServerUrl)
-	{
-		this.authServerUrl = authServerUrl;
-	}
-
-	/**
 	 * @return the authServerAuthorize
 	 */
 	public String getAuthServerAuthorize()
 	{
 		return authServerAuthorize;
-	}
-
-	/**
-	 * @param authServerAuthorize
-	 *           the authServerAuthorize to set
-	 */
-	public void setAuthServerAuthorize(final String authServerAuthorize)
-	{
-		this.authServerAuthorize = authServerAuthorize;
 	}
 
 	/**
@@ -213,15 +227,6 @@ public class OAuth2ConnectionConfig
 	}
 
 	/**
-	 * @param authServerAccessToken
-	 *           the authServerAccessToken to set
-	 */
-	public void setAuthServerAccessToken(final String authServerAccessToken)
-	{
-		this.authServerAccessToken = authServerAccessToken;
-	}
-
-	/**
 	 * @return the eventApiUrl
 	 */
 	public String getEventApiUrl()
@@ -230,29 +235,11 @@ public class OAuth2ConnectionConfig
 	}
 
 	/**
-	 * @param eventApiUrl
-	 *           the eventApiUrl to set
-	 */
-	public void setEventApiUrl(final String eventApiUrl)
-	{
-		this.eventApiUrl = eventApiUrl;
-	}
-
-	/**
 	 * @return the timeOut
 	 */
 	public int getTimeOut()
 	{
 		return timeOut;
-	}
-
-	/**
-	 * @param timeOut
-	 *           the timeOut to set
-	 */
-	public void setTimeOut(final int timeOut)
-	{
-		this.timeOut = timeOut;
 	}
 
 }

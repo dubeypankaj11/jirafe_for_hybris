@@ -17,4 +17,6 @@ public interface JirafeDataSyncStrategy
 
 	public void sync(List<JirafeDataModel> syncData);
 
+	public void flush();
+
 }

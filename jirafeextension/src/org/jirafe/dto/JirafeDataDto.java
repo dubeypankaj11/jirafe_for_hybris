@@ -3,13 +3,18 @@
  */
 package org.jirafe.dto;
 
+import de.hybris.platform.core.Registry;
 import de.hybris.platform.core.model.ItemModel;
 import de.hybris.platform.util.WebSessionFunctions;
 
 import java.util.Date;
+import java.util.Map;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
+
+import org.jirafe.converter.JirafeConvertException;
+import org.jirafe.converter.JirafeJsonConverter;
 
 
 /**
@@ -23,11 +28,15 @@ public class JirafeDataDto
 	private final String jirafeTypeCode;
 	private final ItemModel itemModel;
 	private final Cookie[] cookies;
-	private final Boolean isRemove;
 	private final Date creationTime;
 
-	public JirafeDataDto(final String jirafeTypeCode, final ItemModel itemModel, final Boolean isRemove)
+	private final Map<String, Object> map;
+
+	public <T extends ItemModel> JirafeDataDto(final String jirafeTypeCode, final T itemModel) throws JirafeConvertException
 	{
+		final JirafeJsonConverter jirafeJsonConverter = (JirafeJsonConverter) Registry.getApplicationContext().getBean(
+				"jirafeJsonConverter");
+
 		this.jirafeTypeCode = jirafeTypeCode;
 		this.itemModel = itemModel;
 		//this.cookies = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest().getCookies();
@@ -40,8 +49,8 @@ public class JirafeDataDto
 		{
 			this.cookies = servletRequest.getCookies();
 		}
-		this.isRemove = isRemove;
 		this.creationTime = new Date();
+		this.map = jirafeJsonConverter.toMap(this);
 	}
 
 	/**
@@ -76,27 +85,9 @@ public class JirafeDataDto
 		return cookies;
 	}
 
-	/**
-	 * @return the isRemove
-	 */
-	public Boolean getIsRemove()
+	public Map<String, Object> getMap()
 	{
-		return isRemove;
+		return map;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(final Object obj)
-	{
-		if (!(obj instanceof JirafeDataDto))
-		{
-			return false;
-		}
-		return getItemModel().equals(((JirafeDataDto) obj).getItemModel())
-				&& getIsRemove().equals(((JirafeDataDto) obj).getIsRemove());
-	}
 }

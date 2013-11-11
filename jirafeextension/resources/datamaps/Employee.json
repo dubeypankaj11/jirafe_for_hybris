@@ -1,4 +1,5 @@
 {
+    "__sites__": "@{return '*'}",
     "id": "uid",
     "name": "name",
     "first_name": "name@{return name?.replaceFirst(' [^ ]+$', '')}",
@@ -9,14 +10,14 @@
             if (contactEmail != 'demo@example.com')
                 return contactEmail
         }
-        for (address in model.addresses) {
+        for (def address in model.addresses) {
             if (address.email) return address.email
         }
         return null
     }",
     "active_flag": "loginDisabled@{return ! loginDisabled}",
     "create_date": "@{
-        createDate = dateFormat.format(model?.creationtime ?: new Date())
+        createDate = dateFormat.format(model?.creationtime ?: model?.modifiedtime ?: new Date())
         return createDate
     }",
     "change_date": "@{

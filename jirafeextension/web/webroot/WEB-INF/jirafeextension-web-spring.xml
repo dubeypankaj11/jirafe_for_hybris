@@ -40,10 +40,13 @@
 		<property name="targetClassName" value="org.jirafe.jalo.JirafeextensionJaloSession"/>
 	</bean>-->
 
+	<bean id="hiddenHttpMethodFilter" class="org.springframework.web.filter.HiddenHttpMethodFilter" />
+
 	<!-- Spring managed FilterChain for hybris Filter stack -->
 	<bean id="jirafeextensionPlatformFilterChain" class="de.hybris.platform.servicelayer.web.PlatformFilterChain">
 		<constructor-arg>
 			<list>
+				<ref bean="hiddenHttpMethodFilter"/>
 				<ref bean="log4jFilter"/>
 				<ref bean="dynamicTenantActivationFilter"/>
 				<ref bean="sessionFilter"/>				

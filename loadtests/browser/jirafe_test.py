@@ -2,21 +2,53 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from selenium.common.exceptions import NoSuchElementException
-import unittest, time
+import unittest, time, os
 
 class JirafeTest(unittest.TestCase):
-    def setUp(self):
-        self.base_url = "http://staging-hybris501-01.int.jirafe.net:9001"
-        self.timeout = 30
-        # Default username/password - NOT FOR USER REGISTRATION TESTS
-        self.username = "jirafe@fake.test.com"
-        self.password = "1234567"
+    def setUp(self, user_number=None, browser=None):
+        self.base_url = os.getenv('TEST_BASE_URL',
+                                  'http://staging-hybris501-01.int.jirafe.net:9001')
+        self.timeout = int(os.getenv('TEST_TIMEOUT', '30'))
+        self.referer = os.getenv('TEST_REFERER', None)
+        self.set_user_number(user_number or os.getenv('TEST_USER_NUMBER', 0))
+        browser = browser or os.getenv('TEST_BROWSER', 'firefox')
 
-        self.driver = webdriver.Firefox()
+        if browser == 'firefox':
+            # Use Firefox
+            self.driver = webdriver.Firefox()
+        elif browser == 'phantomjs':
+            # Use PhantomJS
+            self.driver = webdriver.PhantomJS(
+               service_args=['--ignore-ssl-errors=yes']
+            )
+        else:
+            self.fail('Unsupported browser: ' + browser)
+
         self.driver.implicitly_wait(self.timeout)
-        self.verificationErrors = []
-        self.accept_next_alert = True
-    
+
+    def tearDown(self):
+        self.driver.quit()
+
+    def set_user_number(self, user_number=0):
+        self.username = "jirafe{:0>8}@fake.test.com".format(user_number)
+        self.password = 'password'
+
+    def set_referer(self, referer=None):
+        self.referer = referer
+
+    def view_a_page(self, page):
+        driver = self.driver
+        if self.referer:
+            if not driver.current_url.startswith(self.base_url):
+                driver.get(self.base_url)
+            driver.add_cookie({
+                'name': 'fakewww_referrer_spoof',
+                'value': self.referer,
+                'path': '/',
+                'secure': False,
+            })
+        driver.get(self.base_url + page)
+
     def login(self):
         print 'Top of login'
         driver = self.driver
@@ -31,7 +63,7 @@ class JirafeTest(unittest.TestCase):
         driver.find_element_by_id("loginForm").find_element_by_class_name('form').click()
         for i in xrange(self.timeout):
             print 'Waiting for logged in message...'
-            if self.is_element_present(By.CSS_SELECTOR, "li.logged_in"):
+            if self.nowait(self.is_element_present, By.CSS_SELECTOR, "li.logged_in"):
                 break
             time.sleep(1)
         else:
@@ -40,7 +72,7 @@ class JirafeTest(unittest.TestCase):
     def view_a_product(self, product):
         driver = self.driver
 
-        driver.get(self.base_url + "/yacceleratorstorefront/p/{}?site=electronics".format(product))
+        self.view_a_page("/yacceleratorstorefront/p/{}?site=electronics".format(product))
         if not driver.current_url.find('/p/{}'.format(product)) >= 0:
             self.fail('Failed to visit product: {}, got {}'.format(product, driver.current_url))
 
@@ -84,14 +116,52 @@ class JirafeTest(unittest.TestCase):
 
             if driver.current_url.find('checkout/multi') >= 0:
                 print '... delivery address'
-                if driver.current_url.endswith('-delivery-address'):
+                if driver.current_url.endswith('choose-delivery-address'):
                     driver.get(self.base_url + "/yacceleratorstorefront/checkout/multi/choose-delivery-method")
+                if driver.current_url.endswith('add-delivery-address'):
+                    if self.nowait(driver.find_elements_by_class_name, 'saved-payment-list-entry'):
+                        driver.get(self.base_url + "/yacceleratorstorefront/checkout/multi/choose-delivery-method")
+                    else:
+                        self.fill_form([
+                            ['address.country', 'United States\t'],
+                            ['address.title', 'm'],
+                            ['address.firstName', 'John'],
+                            ['address.surname', 'Doe'],
+                            ['address.line1', '123 Main St.'],
+                            ['address.townCity', 'Anytown'],
+                            ['address.region', 'a'],
+                            ['address.postcode', 12345]])
+                        dft = self.nowait(driver.find_elements_by_class_name, 'add-address-left-input')
+                        if dft:
+                            # Hybris 4
+                            dft[0].click()
+                            done = driver.find_element_by_id('addressForm')
+                        else:
+                            # Hybris 5
+                            driver.find_element_by_id('saveAddressInMyAddressBook').click()
+                            done = driver.find_element_by_id('addressform_button_panel')
+                        done.find_element_by_tag_name('button').click()
                 print '... delivery method'
                 if driver.current_url.endswith('choose-delivery-method'):
                     driver.find_element_by_id("selectDeliveryMethodForm").find_element_by_tag_name('button').click()
                 print '... payment method'
+                if driver.current_url.endswith('hop-mock'):
+                    driver.find_element_by_id('button.succeed').click()
                 if driver.current_url.endswith('add-payment-method'):
-                    driver.find_element_by_class_name("saved-payment-list-entry").find_element_by_class_name("form").click()
+                    paylist = self.nowait(driver.find_elements_by_class_name, "saved-payment-list-entry")
+                    if not paylist:
+                        driver.find_element_by_id('useDeliveryAddress').click()
+                        self.fill_form([
+                            ['card_cardType', 'v'],
+                            ['card_nameOnCard', 'John Doe'],
+                            ['card_accountNumber', '4111111111111111'],
+                            ['card_cvNumber', '123'],
+                            ['ExpiryMonth', '0'],
+                            ['ExpiryYear', '2020']])
+                        driver.find_element_by_id('savePaymentInfo1').click()
+                        driver.find_element_by_class_name('save_payment_details').find_element_by_tag_name('button').click()
+                    else:
+                        paylist[0].find_element_by_class_name("form").click()
                 break
             if driver.current_url.find('checkout/single') >= 0:
                 break
@@ -100,9 +170,7 @@ class JirafeTest(unittest.TestCase):
             self.fail('timed out waiting for checkout screen')
 
         print 'Order submit...'
-        self.driver.implicitly_wait(1)
-        security_code = driver.find_elements_by_id('SecurityCode')
-        self.driver.implicitly_wait(self.timeout)
+        security_code = self.nowait(driver.find_elements_by_id, 'SecurityCode')
         if security_code:
             security_code[0].send_keys('123')
         driver.find_element_by_id("Terms1").click()
@@ -122,9 +190,19 @@ class JirafeTest(unittest.TestCase):
         except NoSuchElementException, e: return False
         return True
     
-    def tearDown(self):
-        self.driver.quit()
-        self.assertEqual([], self.verificationErrors)
+    def fill_form(self, map):
+        driver = self.driver
+        for field, value in map:
+            elements = self.nowait(driver.find_elements_by_id, field)
+            if elements:
+                elements[0].send_keys(value)
+
+    def nowait(self, func, *args):
+        driver = self.driver
+        driver.implicitly_wait(0)
+        ret = func(*args)
+        driver.implicitly_wait(self.timeout)
+        return ret
 
 if __name__ == "__main__":
     unittest.main()

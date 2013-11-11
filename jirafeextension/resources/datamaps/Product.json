@@ -1,14 +1,23 @@
 {
+    "__sites__": "@{
+        def baseStores = model?.catalogVersion?.catalog?.baseStores
+        def sites = []
+        for (def store in baseStores) {
+            sites.add(store.uid)
+        }
+        return sites
+    }",
     "id": "pk@{return pk.toString()}",
     "is_product": "@{return !model.hasProperty('baseProduct')}",
-    "is_sku": "@{return model.getVariants() == []}",
+    "is_sku": "@{return model.variants == []}",
+    "inactive": "approvalStatus@{return approvalStatus?.code != 'approved'}",
     "catalog": "@{
-        def version = model.getCatalogVersion()
-        def catalog = version?.getCatalog()
+        def version = model.catalogVersion
+        def catalog = version?.catalog
         return [
-            id: catalog.getId()?.toString(),
-            name: catalog.getName(),
-            version_id: version?.getVersion()?.toString()
+            id: catalog.id?.toString(),
+            name: catalog.name,
+            version_id: version?.version?.toString()
         ]
     }",
     "name": "name",
@@ -46,7 +55,7 @@
     "brand": "manufacturerName",
     "rating": "averageRating",
     "create_date": "@{
-        createDate = dateFormat.format(model?.creationtime ?: new Date())
+        createDate = dateFormat.format(model?.creationtime ?: model?.modifiedtime ?: new Date())
         return createDate
     }",
     "change_date": "@{
@@ -69,18 +78,29 @@
     ],
     "attributes": "@{
         if (!model.hasProperty('baseProduct')) return null
-        def baseProduct = model.baseProduct
         def ret = []
-        for (vadm in baseProduct?.getVariantType()?.getVariantAttributes()) {
-            def name = vadm.getName()
-            def value = modelService.getAttributeValue(model, name)
-            if (! value) continue;
-            ret.add([
-                id: name,
-                name: name,
-                value: value,
-            ])
+        def vadms = model.baseProduct?.variantType?.variantAttributes
+        for (def vadm in vadms) {
+            def name = vadm.name
+            def m = model
+            for (;;) {
+                def value
+                try {
+                    value = modelService.getAttributeValue(m, name)
+                } catch (e) {
+                }
+                if (value) {
+                    ret.add([
+                        id: name,
+                        name: name,
+                        value: value,
+                    ])
+                    break
+                }
+                if (!m.hasProperty('baseProduct')) break
+                m = m.baseProduct
+            }
         }
-        return ret
+        return ret == [] ? null : ret
     }"
 }

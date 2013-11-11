@@ -34,7 +34,7 @@ public abstract class JirafeBaseJobPerformable<T extends CronJobModel> extends A
 	protected FlexibleSearchService flexibleSearchService;
 
 	/**
-	 * Constuctor that sets the job name.
+	 * Constructor that sets the job name.
 	 * 
 	 * @param jobName
 	 */
@@ -94,10 +94,19 @@ public abstract class JirafeBaseJobPerformable<T extends CronJobModel> extends A
 			LOG.debug("Finished performing batch, start={}, batchSize={}", start, batchSize);
 			start = getStart(start, batchSize);
 		}
+		flush();
 
 		LOG.debug("Finished {} job.", jobName);
 
 		return new PerformResult(CronJobResult.SUCCESS, CronJobStatus.FINISHED);
+	}
+
+	/**
+	 * 
+	 */
+	protected void flush()
+	{
+		// Do nothing by default, override if needed
 	}
 
 	/**

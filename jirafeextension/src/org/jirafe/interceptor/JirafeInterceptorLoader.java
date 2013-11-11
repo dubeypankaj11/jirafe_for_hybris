@@ -82,7 +82,7 @@ public class JirafeInterceptorLoader extends AbstractEventListener<AfterSessionC
 
 		// Set values using a mapping object, allows for setting order.
 		mapping.setTypeCode(type);
-		mapping.setInterceptor(new JirafeDefaultInterceptor(persistStrategy, type, jirafeMappingsDao, modelService));
+		mapping.setInterceptor(new JirafeDefaultInterceptor(persistStrategy, type, jirafeMappingsDao));
 		mapping.setOrder(Integer.MAX_VALUE);
 		mapping.setReplacedInterceptors(Collections.EMPTY_LIST);
 

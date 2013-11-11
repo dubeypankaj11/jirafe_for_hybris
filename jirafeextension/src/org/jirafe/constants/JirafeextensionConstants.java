@@ -19,6 +19,7 @@ package org.jirafe.constants;
 public final class JirafeextensionConstants extends GeneratedJirafeextensionConstants
 {
 	public static final String EXTENSIONNAME = "jirafeextension";
+	public static final String RELEASE_VERSION = "2.1.0";
 
 	private JirafeextensionConstants()
 	{

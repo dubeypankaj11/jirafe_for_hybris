@@ -1,8 +1,15 @@
 {
+    "__sites__": "catalogVersion.catalog.baseStores@{
+        def sites = []
+        for (def store in baseStores) {
+            sites.add(store.uid)
+        }
+        return sites
+    }",
     "id": "pk@{return pk.toString()}",
     "name": "name",
     "create_date": "@{
-        createDate = dateFormat.format(model?.creationtime ?: new Date())
+        createDate = dateFormat.format(model?.creationtime ?: model?.modifiedtime ?: new Date())
         return createDate
     }",
     "change_date": "@{

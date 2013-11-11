@@ -35,4 +35,11 @@ public class LoggingSyncStrategy implements JirafeDataSyncStrategy
 		}
 		log.debug("JirafeData sync : complete");
 	}
+
+	@Override
+	public void flush()
+	{
+		log.debug("JirafeData sync : flush");
+	}
+
 }

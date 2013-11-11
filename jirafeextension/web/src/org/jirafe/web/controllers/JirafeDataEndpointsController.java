@@ -32,7 +32,9 @@ public class JirafeDataEndpointsController
 
 	@RequestMapping(method = RequestMethod.GET, produces = "application/json", value = "/dataendpoint/{type}")
 	@ResponseBody
-	public String get(@PathVariable final String type,
+	public String get(
+			@PathVariable final String type, //
+			@RequestParam(required = false) final String site,
 			@RequestParam(value = "start_time", required = false) final String startTime,
 			@RequestParam(value = "end_time", required = false) final String endTime,
 			@RequestParam(value = "page_limit", required = false) final String pageLimit,
@@ -43,7 +45,28 @@ public class JirafeDataEndpointsController
 				startTime, endTime, pageLimit, pageToken));
 		try
 		{
-			return jirafeDataEndpointService.getData(type, startTime, endTime, pageLimit, pageToken);
+			return jirafeDataEndpointService.getData(type, site, startTime, endTime, pageLimit, pageToken);
+		}
+		catch (final Exception e)
+		{
+			LOG.error("failed to retrieve data <{}> due to {}", type, e);
+			return String.format(FAILURE, e);
+		}
+	}
+
+	@RequestMapping(method = RequestMethod.GET, produces = "application/json", value = "/dataendpoint/{type}/{pk}")
+	@ResponseBody
+	public String get(@PathVariable final String type, @PathVariable final String pk, //
+			@RequestParam(value = "map", required = false) final String map)
+	{
+		LOG.info(String.format("Got new data endpoint request for <%s>: id=%s", type, pk));
+		if (map != null)
+		{
+			LOG.info(String.format("... with map: %s", map));
+		}
+		try
+		{
+			return jirafeDataEndpointService.getData(type, pk, map);
 		}
 		catch (final Exception e)
 		{

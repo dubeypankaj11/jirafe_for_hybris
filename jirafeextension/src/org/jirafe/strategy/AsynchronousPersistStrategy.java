@@ -3,10 +3,8 @@
  */
 package org.jirafe.strategy;
 
-import de.hybris.platform.core.model.ItemModel;
 import de.hybris.platform.util.Config;
 
-import java.util.Date;
 import java.util.concurrent.BlockingQueue;
 
 import org.jirafe.dto.JirafeDataDto;
@@ -29,9 +27,6 @@ public class AsynchronousPersistStrategy extends BasePersistStrategy
 	private BlockingQueue<JirafeDataDto> queue;
 	private Runnable persistTasks[];
 	private final int threadCount = Config.getInt("jirafe.persistence.thread_count", 5);
-	private final int waitTime = Config.getInt("jirafe.persistence.wait_time", 500);
-	// Expire time is entered as minutes, but we want milliseconds
-	private final long expireTime = (long) (Config.getDouble("jirafe.persistence.expire_time", 15) * 60000.0);
 
 	@Override
 	public void persist(final JirafeDataDto jirafeDataDto)
@@ -40,13 +35,7 @@ public class AsynchronousPersistStrategy extends BasePersistStrategy
 		{
 			init();
 		}
-		synchronized (queue)
-		{
-			if (!queue.contains(jirafeDataDto))
-			{
-				queue.add(jirafeDataDto);
-			}
-		}
+		queue.add(jirafeDataDto);
 	}
 
 	/**
@@ -104,37 +93,7 @@ public class AsynchronousPersistStrategy extends BasePersistStrategy
 					{
 						break;
 					}
-					log.debug("ASYNC - " + queue.size() + " items in queue.");
-					final ItemModel itemModel = jirafeDataDto.getItemModel();
-					if (modelService.isRemoved(itemModel))
-					{
-						log.debug("ASYNC - item {} was removed after being queued", itemModel.getPk());
-						continue;
-					}
-					if ((new Date().getTime() - jirafeDataDto.getCreationTime().getTime()) > expireTime)
-					{
-						log.debug("ASYNC - item {} expired before save", itemModel.getPk());
-						continue;
-					}
-					if (modelService.isModified(itemModel))
-					{
-						// Means that it hasn't been through the modelservice save process.
-						// Add it back to the queue.
-						// We hold it 
-						log.debug("ASYNC - Item not ready, " + (waitTime > 0 ? "sleeping for " + waitTime + "ms" : ""));
-						synchronized (queue)
-						{
-							if (!queue.contains(jirafeDataDto))
-							{
-								queue.add(jirafeDataDto);
-							}
-							if (waitTime > 0)
-							{
-								queue.wait(waitTime);
-							}
-						}
-						continue;
-					}
+					log.debug("ASYNC - " + queue.size() + " more items in queue.");
 					try
 					{
 						// Do the persisting.

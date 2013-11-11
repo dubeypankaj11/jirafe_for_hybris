@@ -77,6 +77,7 @@
 
 <project name="jirafeextension_buildcallbacks" >
 	
+	<property name="tagfile" value="web/webroot/WEB-INF/tags/shared/analytics/jirafe.tag" />
 	<!-- 
 	    Called whenever 'ant ear' is used. this callback can be used to modify the content of the ear file
 	
@@ -99,7 +100,6 @@
 				 right before the build.
 				 Be sure to add the version numbers to the following for loop
 				 as directories are added.
-			  -->
 			<for list="4,5" param="version">
 				<sequential>
 					<if>
@@ -112,9 +112,31 @@
 					</if>
 				</sequential>
 			</for>
-			<exec executable="bash" dir="${ext.jirafeextension.path}/resources">
+			-->
+			<exec executable="bash" dir="${ext.jirafeextension.path}/resources" failifexecutionfails="false">
 				<arg value="./build_impex.sh" />
 			</exec>
+			<!-- Hybris ships with an old version of the jirafe.tag file.
+				 Replace it with the one we distribute.
+			-->
+			<foreachext>
+				<do>
+					<if>
+						<available file="${ext.@{extname}.path}/${tagfile}" />
+						<then>
+							<echo level="info" message="Patch jirafeextension files for extension @{extname}..."/>
+					    	<if>
+					    		<not> <available file="${ext.@{extname}.path}/${tagfile}-dist" /> </not>
+					    		<then>
+									<move file="${ext.@{extname}.path}/${tagfile}"
+							 	  		  tofile="${ext.@{extname}.path}/${tagfile}-dist" />
+					    		</then>
+					    	</if>
+							<copy file="${ext.jirafeextension.path}/patches/tags/jirafe.tag" tofile="${ext.@{extname}.path}/${tagfile}" overwrite="true" verbose="true" />
+						</then>
+					</if>
+				</do>
+			</foreachext>
 		</sequential>
 	</macrodef>
 
