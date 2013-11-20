@@ -22,8 +22,8 @@ import javax.annotation.Resource;
 import org.jirafe.model.cronjob.JirafeDataSyncCronJobModel;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.enterprisedt.util.debug.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -32,7 +32,7 @@ import com.enterprisedt.util.debug.Logger;
  */
 public class JirafeDataSyncJobPerformableTest extends ServicelayerTest
 {
-	private static final Logger LOG = Logger.getLogger(JirafeDataSyncJobPerformableTest.class);
+	private static final Logger LOG = LoggerFactory.getLogger(JirafeDataSyncJobPerformableTest.class);
 
 	@Resource
 	CronJobService cronJobService;

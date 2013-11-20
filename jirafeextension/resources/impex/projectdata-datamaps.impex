@@ -365,7 +365,8 @@ return (
     ""images"": ""@{
         def url = model?.picture?.URL
         import de.hybris.platform.util.Config
-        def prefix = Config.getString('jirafe.imageURLPrefix', null)
+        def prefix = Config.getString('media.' + site + '.http', '')
+        if (prefix && prefix.endsWith('/')) prefix = prefix[0..-2]
         return url ? [[url: prefix + url]] : null
     }"",
     ""categories"": [

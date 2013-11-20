@@ -16,6 +16,7 @@ import java.util.List;
 
 import javax.annotation.Resource;
 
+import org.jirafe.converter.JirafeJsonConverter;
 import org.jirafe.dao.JirafeMappingsDao;
 import org.jirafe.model.data.JirafeMappingDefinitionsModel;
 import org.jirafe.strategy.JirafeDataPersistStrategy;
@@ -42,6 +43,9 @@ public class JirafeInterceptorLoader extends AbstractEventListener<AfterSessionC
 
 	@Resource
 	ModelService modelService;
+
+	@Resource
+	private JirafeJsonConverter jirafeJsonConverter;
 
 	@Override
 	protected void onEvent(final AfterSessionCreationEvent event)
@@ -82,7 +86,7 @@ public class JirafeInterceptorLoader extends AbstractEventListener<AfterSessionC
 
 		// Set values using a mapping object, allows for setting order.
 		mapping.setTypeCode(type);
-		mapping.setInterceptor(new JirafeDefaultInterceptor(persistStrategy, type, jirafeMappingsDao));
+		mapping.setInterceptor(new JirafeDefaultInterceptor(persistStrategy, type, jirafeMappingsDao, jirafeJsonConverter));
 		mapping.setOrder(Integer.MAX_VALUE);
 		mapping.setReplacedInterceptors(Collections.EMPTY_LIST);
 

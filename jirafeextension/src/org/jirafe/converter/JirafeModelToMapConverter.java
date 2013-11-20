@@ -51,7 +51,11 @@ public class JirafeModelToMapConverter
 		super();
 		modelService = (ModelService) Registry.getApplicationContext().getBean("modelService");
 		final Binding binding = new Binding();
-		binding.setVariable("cookies", jirafeDataDto.getCookies());
+		if (jirafeDataDto != null)
+		{
+			binding.setVariable("cookies", jirafeDataDto.getCookies());
+			binding.setVariable("site", jirafeDataDto.getSite());
+		}
 		binding.setVariable("dateFormat", UTCFormatter.getUTCFormatter());
 		jirafeJsonConverter = (JirafeJsonConverter) Registry.getApplicationContext().getBean("jirafeJsonConverter");
 		binding.setVariable("jirafeModelToMapConverter", this);

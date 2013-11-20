@@ -31,8 +31,10 @@ public class JirafeDataDto
 	private final Date creationTime;
 
 	private final Map<String, Object> map;
+	private final String site;
 
-	public <T extends ItemModel> JirafeDataDto(final String jirafeTypeCode, final T itemModel) throws JirafeConvertException
+	public <T extends ItemModel> JirafeDataDto(final String jirafeTypeCode, final T itemModel, final String site)
+			throws JirafeConvertException
 	{
 		final JirafeJsonConverter jirafeJsonConverter = (JirafeJsonConverter) Registry.getApplicationContext().getBean(
 				"jirafeJsonConverter");
@@ -50,6 +52,7 @@ public class JirafeDataDto
 			this.cookies = servletRequest.getCookies();
 		}
 		this.creationTime = new Date();
+		this.site = site;
 		this.map = jirafeJsonConverter.toMap(this);
 	}
 
@@ -88,6 +91,11 @@ public class JirafeDataDto
 	public Map<String, Object> getMap()
 	{
 		return map;
+	}
+
+	public String getSite()
+	{
+		return site;
 	}
 
 }

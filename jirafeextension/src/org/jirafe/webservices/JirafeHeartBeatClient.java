@@ -35,27 +35,28 @@ public class JirafeHeartBeatClient
 
 	public void ping()
 	{
-		try
-		{
-			jirafeOAuth2Session.putMessage(constractMessage(), "heartbeat", null);
-		}
-		catch (final Exception e)
-		{
-			LOG.error("Got error while sending ping {}", e.getMessage(), e);
-		}
-	}
-
-	protected String constractMessage()
-	{
 		final String instanceId = String.format("<%s>:<%s>", Config.getString("cluster.id", "0"), Registry.getCurrentTenant()
 				.getTenantID());
 		final Map params = new HashMap<String, String>();
 		params.put("version", JirafeextensionConstants.RELEASE_VERSION);
 		params.put("client_id", jirafeOAuth2Session.getConnectionConfig().getClientId());
-		params.put("site_id", jirafeOAuth2Session.getConnectionConfig().getSiteId());
 		params.put("is_enabled", Boolean.valueOf(Config.getBoolean(JirafeDefaultInterceptor.IS_ENABLED, true)));
 		params.put("instance_id", instanceId);
 		params.put("message", "Hello");
-		return gson.toJson(params);
+		final OAuth2ConnectionConfig connectionConfig = jirafeOAuth2Session.getConnectionConfig();
+		for (final String siteId : connectionConfig.getSiteIds())
+		{
+			params.put("site_id", siteId);
+			final String message = gson.toJson(params);
+			try
+			{
+				jirafeOAuth2Session.putMessage(message, "heartbeat", connectionConfig.getSiteNameFromId(siteId));
+			}
+			catch (final Exception e)
+			{
+				LOG.error("Got error while sending ping {}", e.getMessage(), e);
+			}
+		}
 	}
+
 }

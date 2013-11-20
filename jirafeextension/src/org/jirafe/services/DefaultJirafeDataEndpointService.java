@@ -19,6 +19,7 @@ import java.util.Map;
 import javax.annotation.Resource;
 
 import org.apache.commons.lang.StringUtils;
+import org.jirafe.converter.JirafeConvertException;
 import org.jirafe.converter.JirafeJsonConverter;
 import org.jirafe.converter.JirafeModelToMapConverter;
 import org.jirafe.converter.UTCFormatter;
@@ -163,12 +164,12 @@ public class DefaultJirafeDataEndpointService implements JirafeDataEndpointServi
 	 * int, java.lang.String)
 	 */
 	@Override
-	public String getData(final String argType, String site, final String startTime, final String endTime,
+	public String getData(final String argType, String siteId, final String startTime, final String endTime,
 			final String strPageLimit, final String pageToken)
 	{
-		if (StringUtils.isEmpty(site))
+		if (StringUtils.isEmpty(siteId))
 		{
-			site = connectionConfig.getSiteId();
+			siteId = connectionConfig.getSiteId();
 		}
 		final int pageLimit;
 		try
@@ -207,7 +208,7 @@ public class DefaultJirafeDataEndpointService implements JirafeDataEndpointServi
 		fQuery.setCount(pageLimit);
 		fQuery.setNeedTotal(true);
 		//userService.setCurrentUser(userService.getUserForUID(Config.getString("jirafe.security.userName", "jirafeuser")));
-		return queryAndReturn(fQuery, type, site, null);
+		return queryAndReturn(fQuery, type, siteId, null);
 	}
 
 	/*
@@ -232,26 +233,26 @@ public class DefaultJirafeDataEndpointService implements JirafeDataEndpointServi
 		return queryAndReturn(fQuery, type, null, strMap);
 	}
 
-	private boolean siteFilter(final String site, final Map<String, Object> target)
+	private String siteFilter(final String siteId, final ItemModel itemModel) throws JirafeConvertException
 	{
-		if (site == null)
+		if (siteId == null)
 		{
-			// No site restriction
-			return true;
+			// Default site
+			return connectionConfig.getSiteNameFromId(connectionConfig.getSiteId());
 		}
-		final String[] mapSites = jirafeJsonConverter.getSites(target);
+		final String[] mapSites = jirafeJsonConverter.getSites(itemModel);
 		for (final String mapSite : mapSites)
 		{
 			final String mapSiteId = connectionConfig.getSiteId(mapSite);
-			if (site.equals(mapSiteId))
+			if (siteId.equals(mapSiteId))
 			{
-				return true;
+				return mapSite;
 			}
 		}
-		return false;
+		return null;
 	}
 
-	private String queryAndReturn(final FlexibleSearchQuery fQuery, final String type, final String site, final String strMap)
+	private String queryAndReturn(final FlexibleSearchQuery fQuery, final String type, final String siteId, final String strMap)
 	{
 		final Gson gson = new Gson();
 		final HashMap<String, Object> data = new HashMap<String, Object>();
@@ -267,18 +268,19 @@ public class DefaultJirafeDataEndpointService implements JirafeDataEndpointServi
 			{
 				if (jirafeMappingsDao.filter(type, result))
 				{
-					final JirafeDataDto jirafeDataDto = new JirafeDataDto(type, result);
 					if (map != null)
 					{
 						final Map target = new HashMap();
-						new JirafeModelToMapConverter(jirafeDataDto).convert(result, map, target);
+						new JirafeModelToMapConverter(null).convert(result, map, target);
 						response.add(target);
 					}
 					else
 					{
-						final Map<String, Object> target = jirafeJsonConverter.toMap(jirafeDataDto);
-						if (siteFilter(site, target))
+						final String site = siteFilter(siteId, result);
+						if (site != null)
 						{
+							final JirafeDataDto jirafeDataDto = new JirafeDataDto(type, result, site);
+							final Map<String, Object> target = jirafeJsonConverter.toMap(jirafeDataDto);
 							response.add(target);
 						}
 					}

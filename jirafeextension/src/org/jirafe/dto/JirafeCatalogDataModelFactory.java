@@ -44,27 +44,27 @@ public class JirafeCatalogDataModelFactory
 			LOG.debug("Skipping unmapped type {}", itemType);
 			return null;
 		}
-		Map map;
+		final List<JirafeDataModel> ret = new LinkedList<JirafeDataModel>();
 		try
 		{
-			map = jirafeJsonConverter.toMap(new JirafeDataDto(mappedType, itemModel));
+			final String[] sites = jirafeJsonConverter.getSites(itemModel);
+			for (final String site : sites)
+			{
+				Map map;
+				map = jirafeJsonConverter.toMap(new JirafeDataDto(mappedType, itemModel, site));
+				final String json = jirafeJsonConverter.toJson(map);
+				final JirafeCatalogDataModel jirafeCatalogDataModel = new JirafeCatalogDataModel(header);
+				jirafeCatalogDataModel.setSite(site);
+				jirafeCatalogDataModel.setType(mappedType);
+				jirafeCatalogDataModel.setData(json);
+				ret.add(jirafeCatalogDataModel);
+			}
 		}
 		catch (final JirafeConvertException e)
 		{
 			LOG.error("Catalog sync: failed to map item {}.", itemModel.getPk());
 			LOG.debug("", e);
 			return null;
-		}
-		final String json = jirafeJsonConverter.toJson(map);
-		final String[] sites = jirafeJsonConverter.getSites(map);
-		final List<JirafeDataModel> ret = new LinkedList<JirafeDataModel>();
-		for (final String site : sites)
-		{
-			final JirafeCatalogDataModel jirafeCatalogDataModel = new JirafeCatalogDataModel(header);
-			jirafeCatalogDataModel.setSite(site);
-			jirafeCatalogDataModel.setType(mappedType);
-			jirafeCatalogDataModel.setData(json);
-			ret.add(jirafeCatalogDataModel);
 		}
 
 		return ret;

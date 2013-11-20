@@ -7,9 +7,12 @@ import de.hybris.platform.core.model.ItemModel;
 
 import java.util.Map;
 
+import javax.annotation.Resource;
+
 import org.jirafe.converter.JirafeJsonConverter;
 import org.jirafe.dao.JirafeDataDao;
 import org.jirafe.dto.JirafeDataDto;
+import org.jirafe.webservices.JirafeOAuth2Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,11 +30,19 @@ public abstract class BasePersistStrategy implements JirafeDataPersistStrategy
 
 	private JirafeDataDao jirafeDataDao;
 	private JirafeJsonConverter jirafeJsonConverter;
+	@Resource
+	private JirafeOAuth2Session jirafeOAuth2Session;
 
 	protected void doPersist(final JirafeDataDto jirafeDataDto)
 	{
 		Map mapRepresentation;
 		String jsonRepresentation;
+
+		if (jirafeOAuth2Session.getConnectionConfig().getSiteId(jirafeDataDto.getSite()) == null)
+		{
+			return;
+		}
+
 		final ItemModel itemModel = jirafeDataDto.getItemModel();
 
 		if (itemModel == null)
@@ -53,16 +64,9 @@ public abstract class BasePersistStrategy implements JirafeDataPersistStrategy
 
 		try
 		{
-			final String[] sites = jirafeJsonConverter.getSites(mapRepresentation);
-			log.debug("JsonConverter returned: {} {}", sites, jsonRepresentation);
-			if (sites != null)
-			{
-				for (final String site : sites)
-				{
-					jirafeDataDao.save(jirafeDataDto.getJirafeTypeCode(), itemModel.getPk().toString(), jsonRepresentation, site,
-							false);
-				}
-			}
+			log.debug("JsonConverter returned: {}", jsonRepresentation);
+			jirafeDataDao.save(jirafeDataDto.getJirafeTypeCode(), itemModel.getPk().toString(), jsonRepresentation,
+					jirafeDataDto.getSite(), false);
 		}
 		catch (final Exception e)
 		{

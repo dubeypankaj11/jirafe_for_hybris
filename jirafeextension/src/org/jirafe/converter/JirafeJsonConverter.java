@@ -3,6 +3,8 @@
  */
 package org.jirafe.converter;
 
+import de.hybris.platform.core.model.ItemModel;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -41,24 +43,34 @@ public class JirafeJsonConverter
 		return toMap(jirafeDataDto, null);
 	}
 
-	public Map<String, Object> toMap(final JirafeDataDto jirafeDataDto, Iterable keyset) throws JirafeConvertException
+	private Map<String, Object> toMap(final JirafeDataDto jirafeDataDto, final Iterable keyset) throws JirafeConvertException
+	{
+		return toMap(jirafeDataDto, jirafeDataDto.getItemModel(), keyset);
+	}
+
+	private Map<String, Object> toMap(final JirafeDataDto jirafeDataDto, final ItemModel itemModel, Iterable keyset)
+			throws JirafeConvertException
 	{
 		final Map target = new HashMap();
-		final Map definition = getDefinitionMap(jirafeDataDto.getJirafeTypeCode());
+		final String type = jirafeMappingsDao.getMappedType(itemModel);
+		final Map definition = getDefinitionMap(type);
 		if (definition == null)
 		{
-			throw new JirafeConvertException(String.format(DEFINITION_ERROR, jirafeDataDto.getJirafeTypeCode()));
+			throw new JirafeConvertException(String.format(DEFINITION_ERROR, type));
 		}
 		if (keyset == null)
 		{
 			keyset = definition.keySet();
 		}
-		new JirafeModelToMapConverter(jirafeDataDto).convert(jirafeDataDto.getItemModel(), definition, target, keyset);
+		new JirafeModelToMapConverter(jirafeDataDto).convert(itemModel, definition, target, keyset);
 		return target;
 	}
 
-	public String[] getSites(final Map map)
+	public String[] getSites(final ItemModel itemModel) throws JirafeConvertException
 	{
+		final List<String> keys = new ArrayList<String>(1);
+		keys.add("__sites__");
+		final Map map = toMap(null, itemModel, keys);
 		final Object sites = map.get("__sites__");
 		// We accept either a string or an array or list of strings
 		if (sites instanceof String)
@@ -66,7 +78,7 @@ public class JirafeJsonConverter
 			// Special case "*" - all sites
 			if (sites.equals("*"))
 			{
-				return connectionConfig.getSiteIds();
+				return connectionConfig.getSiteNames();
 			}
 			return new String[]
 			{ (String) sites };

@@ -27,6 +27,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import org.jirafe.converter.JirafeJsonConverter;
 import org.jirafe.dao.JirafeChangeTrackerDao;
 import org.jirafe.dao.JirafeMappingsDao;
 import org.jirafe.dto.JirafeDataDto;
@@ -49,6 +50,7 @@ public class JirafeDefaultInterceptor implements ValidateInterceptor, RemoveInte
 	private final JirafeDataPersistStrategy persistStrategy;
 	private final String jirafeTypeCode;
 	private final JirafeMappingsDao jirafeMappingsDao;
+	private final JirafeJsonConverter jirafeJsonConverter;
 
 	/**
 	 * Constructor that accepts required objects.
@@ -58,11 +60,12 @@ public class JirafeDefaultInterceptor implements ValidateInterceptor, RemoveInte
 	 * @param jirafeMappingsDao
 	 */
 	public JirafeDefaultInterceptor(final JirafeDataPersistStrategy persistStrategy, final String jirafeTypeCode,
-			final JirafeMappingsDao jirafeMappingsDao)
+			final JirafeMappingsDao jirafeMappingsDao, final JirafeJsonConverter jirafeJsonConverter)
 	{
 		this.jirafeTypeCode = jirafeTypeCode;
 		this.persistStrategy = persistStrategy;
 		this.jirafeMappingsDao = jirafeMappingsDao;
+		this.jirafeJsonConverter = jirafeJsonConverter;
 	}
 
 	/**
@@ -253,7 +256,10 @@ public class JirafeDefaultInterceptor implements ValidateInterceptor, RemoveInte
 
 					LOG.debug("Calling {}", persistStrategy.getClass().getName());
 
-					persistStrategy.persist(new JirafeDataDto(jirafeTypeCode, itemModel));
+					for (final String site : jirafeJsonConverter.getSites(itemModel))
+					{
+						persistStrategy.persist(new JirafeDataDto(jirafeTypeCode, itemModel, site));
+					}
 				}
 				catch (final JaloObjectNoLongerValidException e)
 				{
