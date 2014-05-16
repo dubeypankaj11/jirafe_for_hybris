@@ -30,12 +30,8 @@ public class DefaultJirafeUpdateMappingService implements JirafeUpdateMappingSer
 	@Override
 	public void updateDefinition(final String type, final String json, final String endPoint)
 	{
-		final boolean isNew = jirafeMappingsDao.updateDefinition(type, json, endPoint);
-
-		if (isNew)
-		{
-			jirafeInterceptorLoader.registerInterceptor(type);
-		}
+		jirafeMappingsDao.updateDefinition(type, json, endPoint);
+		jirafeInterceptorLoader.registerInterceptor(type);
 	}
 
 	/*

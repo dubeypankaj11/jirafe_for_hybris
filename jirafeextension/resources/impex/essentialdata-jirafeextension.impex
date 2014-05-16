@@ -1,8 +1,11 @@
 $lang=en;;;;
-$catalogVersion=catalogVersion(catalog(id[default='Default']),version[default='Online'])[unique=true,default='Default:Online'];;;;
+$imageResource=jar:org.jirafe.constants.JirafeextensionConstants&/jirafeextension/images
 
-INSERT_UPDATE StaticLink;code[unique=true];area(code);sortorder;readPrincipals(uid);;url;extensionName;parentLink(code);;
-;jirafeStaticLink;commerce;2;employeegroup;mcc-icon-b2c.png;http://www.jirafe.com;;;;
+INSERT_UPDATE Media;code[unique=true];catalogVersion(catalog(id),version);@media[translator=de.hybris.platform.impex.jalo.media.MediaDataTranslator]
+;mcc-jirafe.png;Default:Online;$imageResource/mcc-jirafe.png
+
+INSERT_UPDATE StaticLink;code[unique=true];area(code);sortorder;readPrincipals(uid);descriptionIcon(code);url;extensionName;parentLink(code);;
+;jirafeStaticLink;commerce;2;employeegroup;mcc-jirafe.png;{reportcockpit}/index.zul?persp=cockpit.perspective.jirafereport;jirafeextension;;;
 
 INSERT_UPDATE StaticLink;code[unique=true];title[lang=$lang];description[lang=$lang];
-;jirafeStaticLink;Jirafe Cockpit;Jirafe management extension.;
+;jirafeStaticLink;Jirafe Analytics Dashboard;Get answers about your business that help you drive revenue through a unified view of your customer, merchandising, and purchase data.;

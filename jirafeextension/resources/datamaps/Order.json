@@ -9,14 +9,6 @@
     "customer": "user@{
         return jirafeModelToMapConverter.toMap(user, 'Customer', null)
     }",
-    "order_date": "date@{return dateFormat.format(date)}",
-    "create_date": "@{
-        createDate = dateFormat.format(model?.creationtime ?: model?.modifiedtime ?: new Date())
-        return createDate
-    }",
-    "change_date": "@{
-        return model?.modifiedtime ? dateFormat.format(model?.modifiedtime) : createDate
-    }",
     "raw_status": "status@{status?.code}",
     "status": "status@{
         orderStatus = [
@@ -25,6 +17,20 @@
             COMPLETED: 'accepted',
         ][status?.code] ?: null
         return orderStatus
+    }",
+    "create_date": "@{
+        createDate = dateFormat.format(model?.creationtime ?: model?.modifiedtime ?: new Date())
+        return createDate
+    }",
+    "change_date": "@{
+        changeDate = model?.modifiedtime ? dateFormat.format(model?.modifiedtime) : createDate
+        return changeDate
+    }",
+    "order_date": "date@{
+        if (orderStatus == 'accepted' ) return dateFormat.format(date)
+    }",
+    "cancel_date": "@{
+        if (orderStatus == 'cancelled') return changeDate
     }",
     "subtotal": "subtotal",
     "total": "totalPrice",
@@ -46,5 +52,25 @@
     "payment_address": "paymentAddress@{
         if (!paymentAddress) return null
         return jirafeModelToMapConverter.toMap(paymentAddress, 'Address', null)
+    }",
+    "payment_method": "paymentInfo@{
+        // Strip off leading de.hybris...
+        // and trailing PaymentInfoModel, if present
+        // leaving something like 'CreditCard'
+        return paymentInfo?.class?.name?.replaceAll('^(.*\\\\.)?(.*?)(PaymentInfoModel)?$', '$2')
+    }",
+    "payment_card_type": "paymentInfo@{
+        return paymentInfo.hasProperty('type') ? paymentInfo.type?.code : null
+    }",
+    "discount_codes": "@{
+        import de.hybris.platform.core.Registry
+        import de.hybris.platform.promotions.PromotionsService
+        PromotionsService promotionsService = ((PromotionsService)
+            Registry.getApplicationContext().getBean('promotionsService'))
+        def codes = []
+        promotionsService.getPromotionResults(model)?.firedProductPromotions?.each{
+            codes.add(it.promotion.code)
+        }
+        return codes ?: null
     }"
 }

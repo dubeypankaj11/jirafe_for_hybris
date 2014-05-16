@@ -20,12 +20,14 @@ import java.util.List;
 
 import javax.annotation.Resource;
 
-import org.jirafe.dto.JirafeCatalogDataModelFactory;
+import org.jirafe.dao.JirafeSyncDataDao;
+import org.jirafe.dto.JirafeTempDataModelFactory;
 import org.jirafe.enums.JirafeDataStatus;
 import org.jirafe.model.cronjob.JirafeCatalogSyncCronJobModel;
 import org.jirafe.model.data.JirafeCatalogSyncDataModel;
 import org.jirafe.model.data.JirafeDataModel;
 import org.jirafe.strategy.JirafeDataSyncStrategy;
+import org.jirafe.strategy.JirafeDataSyncStrategy.AuthenticationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,18 +46,18 @@ public class JirafeCatalogSyncJobPerformable extends AbstractJobPerformable<Jira
 	@Resource
 	protected FlexibleSearchService flexibleSearchService;
 	@Resource
-	protected JirafeCatalogDataModelFactory jirafeCatalogDataModelFactory;
+	protected JirafeTempDataModelFactory jirafeTempDataModelFactory;
+	@Resource
+	protected JirafeSyncDataDao jirafeSyncDataDao;
 
-	private static final String MAX_RETRY = "jirafe.jirafeDataSync.authFailureLimit";
-
-	private static final String headerQuery = "SELECT {" + JirafeCatalogSyncDataModel.PK + "}, {"
-			+ JirafeCatalogSyncDataModel.LASTMODIFIED + "}, {" + JirafeCatalogSyncDataModel.LASTPK + "} FROM {"
-			+ JirafeCatalogSyncDataModel._TYPECODE + "}";
-
-	private static final String dataQuery = "SELECT {" + ItemSyncTimestampModel.PK + "},{" + ItemSyncTimestampModel.TARGETITEM
-			+ "} FROM {" + ItemSyncTimestampModel._TYPECODE + "} WHERE ({" + ItemModel.MODIFIEDTIME + "} > ?lastModified OR {"
-			+ ItemModel.MODIFIEDTIME + "} = ?lastModified AND {" + ItemModel.PK + "} > ?lastPK) ORDER BY {" + ItemModel.MODIFIEDTIME
-			+ "} ASC, {" + ItemModel.PK + "} ASC";
+	private static final String dataQuery = //
+	"SELECT {" + ItemSyncTimestampModel.PK + "},{" + ItemSyncTimestampModel.TARGETITEM + "} " + //
+			"FROM {" + ItemSyncTimestampModel._TYPECODE + "} " + //
+			"WHERE {" + ItemSyncTimestampModel.TARGETITEM + "} IS NOT NULL " + //
+			"AND  ({" + ItemModel.MODIFIEDTIME + "} > ?lastModified " + //
+			" OR   {" + ItemModel.MODIFIEDTIME + "} = ?lastModified " + //
+			"  AND {" + ItemModel.PK + "} > ?lastPK) " + //
+			"ORDER BY {" + ItemModel.MODIFIEDTIME + "} ASC, {" + ItemModel.PK + "} ASC";
 
 	private JirafeDataSyncStrategy syncStrategy;
 
@@ -75,27 +77,13 @@ public class JirafeCatalogSyncJobPerformable extends AbstractJobPerformable<Jira
 	@Override
 	public PerformResult perform(final JirafeCatalogSyncCronJobModel cronJob)
 	{
-		int start;
 		final int batchSize;
 		List<ItemSyncTimestampModel> data;
 		final FlexibleSearchQuery query;
 
-		start = 0;
 		batchSize = Config.getInt("jirafe.cronjob.batchSize", 10);
 
-		final List<Object> result = flexibleSearchService.search(
-				new FlexibleSearchQuery(JirafeCatalogSyncJobPerformable.headerQuery)).getResult();
-		final JirafeCatalogSyncDataModel header;
-		if (result != null && result.size() > 0)
-		{
-			header = (JirafeCatalogSyncDataModel) result.get(0);
-		}
-		else
-		{
-			header = new JirafeCatalogSyncDataModel();
-			header.setLastModified(new Date());
-			header.setLastPK(PK.BIG_PK);
-		}
+		final JirafeCatalogSyncDataModel header = jirafeSyncDataDao.get();
 
 		query = new FlexibleSearchQuery(JirafeCatalogSyncJobPerformable.dataQuery);
 		query.setCount(batchSize);
@@ -103,31 +91,44 @@ public class JirafeCatalogSyncJobPerformable extends AbstractJobPerformable<Jira
 
 		Date lastModified = header.getLastModified();
 		PK lastPK = header.getLastPK();
-		while ((data = getCatalogSyncData(query, lastModified, lastPK)) != null)
+		JirafeDataStatus exitStatus = JirafeDataStatus.ACCEPTED;
+		try
 		{
-			LOG.debug("Start performing batch, start={}/{}", lastModified, lastPK);
-			for (final ItemSyncTimestampModel item : data)
+			while ((data = getCatalogSyncData(query, lastModified, lastPK)) != null)
 			{
-				final ItemModel itemModel = item.getTargetItem();
-				final List<JirafeDataModel> jirafeDataModels = jirafeCatalogDataModelFactory.fromItemModel(header, itemModel);
-				if (jirafeDataModels != null)
+				LOG.debug("Start performing batch, start={}/{}", lastModified, lastPK);
+				for (final ItemSyncTimestampModel item : data)
 				{
-					syncStrategy.sync(jirafeDataModels);
+					final ItemModel itemModel = item.getTargetItem();
+					final List<JirafeDataModel> jirafeDataModels = jirafeTempDataModelFactory.fromItemModel(itemModel);
+					if (jirafeDataModels != null)
+					{
+						syncStrategy.sync(jirafeDataModels);
+					}
+					lastModified = item.getModifiedtime();
+					lastPK = item.getPk();
 				}
-				lastModified = item.getModifiedtime();
-				lastPK = item.getPk();
 			}
+			syncStrategy.flush();
 		}
-		syncStrategy.flush();
+		catch (final AuthenticationException e)
+		{
+			exitStatus = JirafeDataStatus.NOT_AUTHORIZED;
+		}
+		catch (final Exception e)
+		{
+			exitStatus = JirafeDataStatus.REJECTED;
+		}
 
-		header.setStatus(JirafeDataStatus.ACCEPTED);
+		header.setStatus(exitStatus);
 		header.setLastModified(lastModified);
 		header.setLastPK(lastPK);
 		modelService.save(header);
 
-		LOG.debug("Finished JirafeCatalogSyncCronJob job.");
+		LOG.debug("Finished JirafeCatalogSyncCronJob job, exit status = {}.", exitStatus);
 
-		return new PerformResult(CronJobResult.SUCCESS, CronJobStatus.FINISHED);
+		return new PerformResult(exitStatus == JirafeDataStatus.ACCEPTED ? CronJobResult.SUCCESS : CronJobResult.FAILURE,
+				CronJobStatus.FINISHED);
 	}
 
 	/**

@@ -15,6 +15,8 @@
     <context:component-scan base-package="org.jirafe.web.security" />
     
 	<security:http auto-config="true">
+		<security:intercept-url pattern="/index.*" access="IS_AUTHENTICATED_ANONYMOUSLY" />
+		<security:intercept-url pattern="/webservices/**" access="ROLE_JIRAFE_SERVICES" />
 		<security:intercept-url pattern="/**" access="ROLE_JIRAFE_ADMIN" />
 		<security:http-basic />
 	</security:http>

@@ -10,41 +10,41 @@
  Information and shall use it only in accordance with the terms of the
  license agreement you entered into with hybris.
 
-  
+
 -->
 <!--
  All hybris buildcallbacks.xml macrodefinitions:
- 
+
  Build/Documentation
- 
+
 	 before/after ant macro "clean"
 		 <macrodef name="jirafeextension_before_clean"/>
 		 <macrodef name="jirafeextension_after_clean"/>
-	 
+
 	 before/after ant macro "build"
 		 <macrodef name="jirafeextension_before_build"/>
 		 <macrodef name="jirafeextension_after_build"/>
-		 
+
 	 before/after ant macro "compile_core" - the core module of the extension
 		 <macrodef name="jirafeextension_before_compile_core">
 		 <macrodef name="jirafeextension_after_compile_core">
-	 
+
 	 before/after ant macro "compile_web" - the web module of the extension
 		 <macrodef name="jirafeextension_before_compile_web" />
 		 <macrodef name="jirafeextension_after_compile_web" />
-	 
+
 	 before/after ant macro "compile_hmc" - the hmc module of the extension
 		 <macrodef name="jirafeextension_before_compile_hmc" />
 		 <macrodef name="jirafeextension_after_compile_hmc" />
- 
+
  Preparing extension
- 
-	 will be called in the beginning of the ant call and only once (also when using multiple 
+
+	 will be called in the beginning of the ant call and only once (also when using multiple
 	 ant targets e.g. ant build yunittest)	
 		 <macrodef name="jirafeextension_only_once_prepare"/>
- 
+
  Creating ear module/production
- 
+
 	 before/after ant macro "ear"
 		 <macrodef name="jirafeextension_before_ear"/>
 		 <macrodef name="jirafeextension_after_ear"/>
@@ -52,33 +52,37 @@
 	 before/after ant macro "production" - for hybris server only
 		 <macrodef name="jirafeextension_before_production" />
 		 <macrodef name="jirafeextension_after_production" />
- 
+
  JUnit Test
- 
-	 before/after ant macro "yunitinit" 
+
+	 before/after ant macro "yunitinit"
 		 <macrodef name="jirafeextension_before_yunitinit" />
 		 <macrodef name="jirafeextension_after_yunitinit" />
-	 
+	
 	 before/after ant macro "yunit"
 		 <macrodef name="jirafeextension_before_yunit" />
-		 <macrodef name="jirafeextension_after_yunit" /> 
-		 
+		 <macrodef name="jirafeextension_after_yunit" />
+		
  Distribution package
- 
+
  	 before/after ant macro "dist" - internal target; only for use when platform is available in source code
 		 <macrodef name="jirafeextension_after_dist"/>
 		 <macrodef name="jirafeextension_before_dist"/>
-	 
+	
 	 before/after ant macro "dist_copy" - internal target; only for use when platform is available in source code
 		 <macrodef name="jirafeextension_before_dist_copy"/>
 		 <macrodef name="jirafeextension_after_dist_copy"/>
- 
+
 -->
 
 <project name="jirafeextension_buildcallbacks" >
-	
-	<property name="tagfile" value="web/webroot/WEB-INF/tags/shared/analytics/jirafe.tag" />
-	<!-- 
+
+	<property name="tagfiles" value="web/webroot/WEB-INF/tags/shared/analytics/jirafe.tag,web/webroot/WEB-INF/tags/analytics/jirafe.tag" />
+	<property name="configxml" value="web/webroot/WEB-INF/web-jirafe-config.xml" />
+	<property name="webxml" value="web/webroot/WEB-INF/web.xml" />
+	<property name="interceptors" value="web/src/org/jirafe/interceptors/" />
+
+	<!--
 	    Called whenever 'ant ear' is used. this callback can be used to modify the content of the ear file
 	
 	     ${ear.path}: 			path to ear
@@ -87,7 +91,7 @@
 		<sequential>
 
 			<!-- you can do anything before the EAR file is being packed -->
-			
+
 		</sequential>
 	</macrodef>
 
@@ -121,20 +125,62 @@
 			-->
 			<foreachext>
 				<do>
-					<if>
-						<available file="${ext.@{extname}.path}/${tagfile}" />
-						<then>
-							<echo level="info" message="Patch jirafeextension files for extension @{extname}..."/>
-					    	<if>
-					    		<not> <available file="${ext.@{extname}.path}/${tagfile}-dist" /> </not>
-					    		<then>
-									<move file="${ext.@{extname}.path}/${tagfile}"
-							 	  		  tofile="${ext.@{extname}.path}/${tagfile}-dist" />
-					    		</then>
-					    	</if>
-							<copy file="${ext.jirafeextension.path}/patches/tags/jirafe.tag" tofile="${ext.@{extname}.path}/${tagfile}" overwrite="true" verbose="true" />
-						</then>
-					</if>
+					<for list="${tagfiles}" param="tagfile">
+						<sequential>
+							<if>
+								<available file="${ext.@{extname}.path}/@{tagfile}" />
+								<then>
+									<echo level="info" message="Patch jirafeextension files for extension @{extname}..."/>
+									<if>
+										<not>
+											<available file="${ext.@{extname}.path}/${webxml}-dist" />
+										</not>
+										<then>
+											<copy file="${ext.@{extname}.path}/${webxml}"
+												  tofile="${ext.@{extname}.path}/${webxml}-dist" preservelastmodified="true" />
+										</then>
+									</if>
+									<if>
+										<not>
+											<available file="${ext.@{extname}.path}/@{tagfile}-dist" />
+										</not>
+										<then>
+											<move file="${ext.@{extname}.path}/@{tagfile}"
+												  tofile="${ext.@{extname}.path}/@{tagfile}-dist" />
+										</then>
+									</if>
+									<replace file="${ext.@{extname}.path}/${webxml}" token="&gt;WEB-INF/config/web-application-config.xml&lt;" value="&gt;WEB-INF/config/web-application-config.xml WEB-INF/web-jirafe-config.xml&lt;" />
+									<copy file="${ext.jirafeextension.path}/patches/tags/jirafe.tag" tofile="${ext.@{extname}.path}/@{tagfile}" overwrite="true" verbose="true" />
+									<copy file="${ext.jirafeextension.path}/patches/web-jirafe-config.xml" tofile="${ext.@{extname}.path}/${configxml}" overwrite="true" verbose="true" />
+									<copy todir="${ext.@{extname}.path}/${interceptors}" overwrite="true" verbose="true">
+										<fileset dir="${ext.jirafeextension.path}/patches/interceptors" />
+									</copy>
+								</then>
+							</if>
+						</sequential>
+					</for>
+				</do>
+			</foreachext>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="jirafeextension_after_clean">
+		<sequential>
+			<foreachext>
+				<do>
+					<for list="${tagfiles}" param="tagfile">
+						<sequential>
+							<if>
+								<available file="${ext.@{extname}.path}/@{tagfile}" />
+								<then>
+									<replace file="${ext.@{extname}.path}/${webxml}" token="&gt;WEB-INF/config/web-application-config.xml WEB-INF/web-jirafe-config.xml&lt;" value="&gt;WEB-INF/config/web-application-config.xml&lt;" />
+									<move file="${ext.@{extname}.path}/@{tagfile}-dist" tofile="${ext.@{extname}.path}/@{tagfile}" failonerror="false" />
+									<delete file="${ext.@{extname}.path}/${configxml}" failonerror="false" />
+									<delete dir="${ext.@{extname}.path}/${interceptors}" failonerror="false" />
+								</then>
+							</if>
+						</sequential>
+					</for>
 				</do>
 			</foreachext>
 		</sequential>

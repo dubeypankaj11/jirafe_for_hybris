@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ [y] hybris Platform
+
+ Copyright (c) 2000-2012 hybris AG
+ All rights reserved.
+
+ This software is the confidential and proprietary information of hybris
+ ("Confidential Information"). You shall not disclose such Confidential
+ Information and shall use it only in accordance with the terms of the
+ license agreement you entered into with hybris.
+-->
+
+
+<!-- 
+  WARNING: This is the Spring WEB configuration file. If you want to replace
+  items or managers you have to do this from the extensions core configuration 
+  file (jirafereportcockpit/resources/jirafereportcockpit-spring.xml) 
+  -->
+
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans 
+			   http://www.springframework.org/schema/beans/spring-beans-3.1.xsd 
+			   http://www.springframework.org/schema/aop 
+			   http://www.springframework.org/schema/aop/spring-aop-3.1.xsd"
+       default-autowire="byName">
+  
+  <!-- 
+       UICockpitSession represents session in an cockpit application. It manages e.g. the available cockpit perspectives.
+  -->
+  <bean id="UICockpitSession" class="de.hybris.platform.cockpit.session.impl.UISessionImpl" scope="session">
+    <property name="initialSessionListeners">
+      <list></list>
+    </property>
+    <property name="availablePerspectives">
+      <list>
+        <ref bean="ReportPerspective"/>
+	<ref bean="JirafereportcockpitPerspective"/>
+      </list>
+    </property>
+  </bean>
+
+  <bean id="jirafeReportCockpitPageUrlProvider" class="com.jirafe.JirafeReportCockpitPageUrlProvider"/>
+
+  <!-- 
+       Jirafereportcockpit perspective.
+  -->
+  <bean id="JirafereportcockpitPerspective" scope="session" parent="BasePerspective" class="com.jirafe.components.JirafeReportCockpitPerspective">
+    <property name="uid" value="cockpit.perspective.jirafereport" /> 
+    <property name="label" value="reportcockpit.perspective.jirafereport" />  
+    <property name="navigationArea">
+      <bean parent="BaseNavigationArea" >
+	<property name="sections">
+	  <list>
+	    <bean class="de.hybris.platform.cockpit.components.navigationarea.NavigationPanelSection">
+	      <property name="localizedLabel" value="navigationarea.history" />
+	      <property name="visible" value="true" />
+	      <property name="renderer">
+		<bean class="de.hybris.platform.cockpit.components.navigationarea.renderer.UndoSectionRenderer" />
+	      </property>
+	    </bean>
+	  </list>
+	</property>
+      </bean>
+    </property>
+    <property name="browserArea">
+      <bean class="de.hybris.platform.cockpit.session.impl.UrlBrowserArea">
+	<property name="browserUid" value="urlbrowser.jirafereportcockpit" />
+	<property name="viewURI" value="/jirafereportcockpit/browserArea.zul"/>
+      </bean>
+    </property>
+    <property name="editorArea">
+      <bean parent="BaseEditorAreaModel"/>
+    </property>
+    <property name="popupEditorArea">
+      <bean parent="BasePopupEditor"/>
+    </property>
+    <property name="cockpitTypeService" ref="cockpitTypeService"/>
+  </bean>
+</beans>

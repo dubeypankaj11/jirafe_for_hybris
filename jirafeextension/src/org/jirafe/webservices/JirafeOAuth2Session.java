@@ -19,6 +19,7 @@ import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
 import org.apache.commons.httpclient.URI;
 import org.apache.commons.httpclient.URIException;
+import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.methods.PutMethod;
 import org.apache.commons.httpclient.methods.StringRequestEntity;
@@ -40,7 +41,6 @@ import com.google.gson.JsonParseException;
 public class JirafeOAuth2Session
 {
 	private final static Logger LOG = LoggerFactory.getLogger(JirafeOAuth2Session.class);
-	private static final int MAX_RETRY = 1;
 
 	private HttpClient client;
 	private String accessToken;
@@ -57,9 +57,47 @@ public class JirafeOAuth2Session
 		client.getHttpConnectionManager().getParams().setConnectionTimeout(connectionConfig.getTimeOut());
 	}
 
-	public Map putMessage(final String message, final String type, final String site)
+	public Map getMessage(final String type, final String site) throws InvalidSite
 	{
-		final String url = getUrl(type, site);
+		final String url = getUrl(type, site, false);
+		if (url == null)
+		{
+			final String msg = String.format("No endpoint for site %s", site);
+			LOG.error(msg);
+			throw new InvalidSite(msg);
+		}
+
+		LOG.debug("GET <{}> message from {}", type, url);
+		final GetMethod method = new GetMethod(url);
+
+		return sendMessage(method);
+	}
+
+	public Map putMessage(final Map message, final String type, final String site) throws UnsupportedEncodingException,
+			InvalidSite
+	{
+		return putMessage(gson.toJson(message), type, site);
+	}
+
+	public class InvalidSite extends Exception
+	{
+		public InvalidSite(final String message)
+		{
+			super(message);
+		}
+	}
+
+	public Map putMessage(final String message, final String type, final String site) throws UnsupportedEncodingException,
+			InvalidSite
+	{
+		final String url = getUrl(type, site, true);
+		if (url == null)
+		{
+			final String msg = String.format("No endpoint for site %s, discarding message", site);
+			LOG.error(msg + ": " + message);
+			throw new InvalidSite(msg);
+		}
+
 		LOG.debug("PUT <{}> message to {}", type, url);
 		final PutMethod method = new PutMethod(url);
 
@@ -70,14 +108,9 @@ public class JirafeOAuth2Session
 		catch (final UnsupportedEncodingException e)
 		{
 			LOG.error("Error encoding json message: {} ({})", e.getMessage(), url);
-			return null;
+			throw e;
 		}
 		return sendMessage(method);
-	}
-
-	protected Map sendMessage(final HttpMethodBase method)
-	{
-		return sendMessage(method, 0);
 	}
 
 	private String getMethodUrl(final HttpMethodBase method)
@@ -99,15 +132,9 @@ public class JirafeOAuth2Session
 		return url;
 	}
 
-	protected Map sendMessage(final HttpMethodBase method, final int retry)
+	protected Map sendMessage(final HttpMethodBase method)
 	{
 		final String url = getMethodUrl(method);
-
-		if (retry >= MAX_RETRY)
-		{
-			LOG.error("Retry limit reached ({})", url);
-			return null;
-		}
 
 		try
 		{
@@ -117,7 +144,7 @@ public class JirafeOAuth2Session
 			if (statusCode == 403)
 			{
 				invalidateToken();
-				return sendMessage(method, retry + 1);
+				return null;
 			}
 
 			if (statusCode != HttpStatus.SC_OK)
@@ -148,9 +175,33 @@ public class JirafeOAuth2Session
 		return new Header("Authorization", String.format("Bearer %s", accessToken));
 	}
 
-	protected String getUrl(final String type, final String site)
+	protected String getUrl(final String type, final String siteName, final boolean update)
 	{
-		return connectionConfig.getEventApiUrl() + connectionConfig.getSiteId(site) + "/" + type;
+		final String siteId = connectionConfig.getSiteId(siteName);
+		if (StringUtils.isEmpty(siteId))
+		{
+			return null;
+		}
+		String url, append;
+		if (type.startsWith("accounts/"))
+		{
+			url = connectionConfig.getAuthServerUrl();
+			append = type + "/" + siteId + "/";
+			if (update)
+			{
+				append += "update/";
+			}
+		}
+		else
+		{
+			url = connectionConfig.getEventApiUrl();
+			append = siteId + "/" + type;
+		}
+		if (!url.endsWith("/"))
+		{
+			url += "/";
+		}
+		return url + append;
 	}
 
 	protected void updateToken()

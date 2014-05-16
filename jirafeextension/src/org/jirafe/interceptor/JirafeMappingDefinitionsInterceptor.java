@@ -7,6 +7,9 @@ import de.hybris.platform.servicelayer.interceptor.InterceptorContext;
 import de.hybris.platform.servicelayer.interceptor.InterceptorException;
 import de.hybris.platform.servicelayer.interceptor.ValidateInterceptor;
 
+import javax.annotation.Resource;
+
+import org.jirafe.converter.JirafeJsonConverter;
 import org.jirafe.model.data.JirafeMappingDefinitionsModel;
 
 
@@ -20,6 +23,8 @@ public class JirafeMappingDefinitionsInterceptor implements ValidateInterceptor
 {
 
 	private JirafeInterceptorLoader interceptorLoader;
+	@Resource
+	private JirafeJsonConverter jirafeJsonConverter;
 
 	/**
 	 * Loads a data mapping intercepter as it gets loaded to the database.
@@ -27,7 +32,9 @@ public class JirafeMappingDefinitionsInterceptor implements ValidateInterceptor
 	@Override
 	public void onValidate(final Object model, final InterceptorContext ctx) throws InterceptorException
 	{
-		interceptorLoader.registerInterceptor(((JirafeMappingDefinitionsModel) model).getType());
+		final String type = ((JirafeMappingDefinitionsModel) model).getType();
+		jirafeJsonConverter.invalidateDefinitionMap(type);
+		interceptorLoader.registerInterceptor(type);
 	}
 
 	public void setJirafeInterceptorLoader(final JirafeInterceptorLoader interceptorLoader)

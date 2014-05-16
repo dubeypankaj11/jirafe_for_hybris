@@ -43,6 +43,7 @@ public class JirafeUserDetailsService implements UserDetailsService
 	private String userName;
 	private String groupName;
 	private String roleName;
+	private String servicesRoleName;
 
 	@PostConstruct
 	public void init()
@@ -50,6 +51,7 @@ public class JirafeUserDetailsService implements UserDetailsService
 		userName = configurationService.getConfiguration().getString("jirafe.security.userName", "jirafeuser");
 		groupName = configurationService.getConfiguration().getString("jirafe.security.groupName", "jirafegroup");
 		roleName = configurationService.getConfiguration().getString("jirafe.security.roleName", "ROLE_JIRAFE_ADMIN");
+		servicesRoleName = configurationService.getConfiguration().getString("jirafe.security.roleName", "ROLE_JIRAFE_SERVICES");
 	}
 
 	/*
@@ -75,12 +77,6 @@ public class JirafeUserDetailsService implements UserDetailsService
 			return null;
 		}
 
-		if (!userName.equals(this.userName))
-		{
-			LOG.debug("User <{}> is not the designated jirafe user", userName);
-			return null;
-		}
-
 		final List<GrantedAuthority> roles = new ArrayList<GrantedAuthority>();
 		final UserGroupModel groupToCheckFor = userService.getUserGroupForUID(groupName);
 		if (userService.isMemberOfGroup(user, groupToCheckFor))
@@ -95,6 +91,23 @@ public class JirafeUserDetailsService implements UserDetailsService
 					return roleName;
 				}
 			});
+			if (userName.equals(this.userName))
+			{
+				LOG.debug("User <{}> is the special jirafe user", userName);
+				LOG.debug("Setting role for user <{}> to <{}>", userName, servicesRoleName);
+				roles.add(new GrantedAuthority()
+				{
+					@Override
+					public String getAuthority()
+					{
+						return servicesRoleName;
+					}
+				});
+			}
+			else
+			{
+				LOG.debug("User <{}> is not the special jirafe user", userName);
+			}
 		}
 		else
 		{

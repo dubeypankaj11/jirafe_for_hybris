@@ -17,7 +17,7 @@ import java.util.Map.Entry;
 import javax.annotation.Resource;
 
 import org.jirafe.dao.JirafeMappingsDao;
-import org.jirafe.dto.JirafeCatalogDataModel;
+import org.jirafe.dto.JirafeTempDataModel;
 import org.jirafe.enums.JirafeDataStatus;
 import org.jirafe.model.data.JirafeDataModel;
 import org.jirafe.webservices.JirafeOutboundClient;
@@ -104,12 +104,16 @@ public class HttpSyncStrategy implements JirafeDataSyncStrategy
 	private final Map<String, SiteData> queue = new HashMap<String, SiteData>();
 
 	/**
+	 * @throws AuthenticationException
 	 * 
 	 */
 	@Override
-	public void sync(final List<JirafeDataModel> syncData)
+	public void sync(final List<JirafeDataModel> syncData) throws AuthenticationException
 	{
-		LOG.info("JirafeData sync : starting syncing {} items", Integer.valueOf(syncData.size()));
+		if (LOG.isDebugEnabled())
+		{
+			LOG.debug("JirafeData sync : starting syncing {} items", Integer.valueOf(syncData.size()));
+		}
 
 		for (final JirafeDataModel model : syncData)
 		{
@@ -148,7 +152,7 @@ public class HttpSyncStrategy implements JirafeDataSyncStrategy
 		}
 	}
 
-	private void flush(final String site)
+	private void flush(final String site) throws AuthenticationException
 	{
 		final SiteData siteData = queue.get(site);
 		if (siteData == null)
@@ -165,6 +169,8 @@ public class HttpSyncStrategy implements JirafeDataSyncStrategy
 		int authFailureCount = 0;
 		int successCount = 0;
 		int failureCount = 0;
+
+		final int maxRetries = Config.getInt(MAX_RETRY, 5);
 
 		int len = "{}".length();
 		for (final Entry<String, TypeData> entry : typeMap.entrySet())
@@ -188,55 +194,60 @@ public class HttpSyncStrategy implements JirafeDataSyncStrategy
 
 		try
 		{
-			final String batchBuf = buf.toString();
-			LOG.debug("Batch buffer: size is {}, calculated size is {}", batchBuf.length(), siteData.getLength());
-			final TransactionResult result = jirafeOutboundClient.putBatch(batchBuf, site);
-			switch (result.status)
+			while (authFailureCount < maxRetries)
 			{
-				case SUCCESS:
-					for (final String type : typeMap.keySet())
-					{
-						final List<JirafeDataModel> models = typeMap.get(type).models;
-
-						for (int i = 0; i < models.size(); ++i)
+				final String batchBuf = buf.toString();
+				LOG.debug("Batch buffer: size is {}, calculated size is {}", batchBuf.length(), siteData.getLength());
+				final TransactionResult result = jirafeOutboundClient.putBatch(batchBuf, site);
+				switch (result.status)
+				{
+					case SUCCESS:
+					case FAILURE:
+						for (final String type : typeMap.keySet())
 						{
-							final TransactionResult lineResult = result.analyzeRow(type, i);
-							final JirafeDataModel model = models.get(i);
-							switch (lineResult.status)
+							final List<JirafeDataModel> models = typeMap.get(type).models;
+
+							for (int i = 0; i < models.size(); ++i)
 							{
-								case SUCCESS:
-									model.setStatus(JirafeDataStatus.ACCEPTED);
-									successCount++;
-									if (LOG.isDebugEnabled())
-									{
-										LOG.debug("JirafeData sync : successfully sync'd item {}.", model.getPk());
-									}
-									break;
-								case FAILURE:
-									model.setStatus(JirafeDataStatus.REJECTED);
-									model.setErrors(lineResult.errors.toString());
-									failureCount++;
-									if (LOG.isDebugEnabled())
-									{
-										LOG.debug("JirafeData sync : failed to sync item {}.", model.getPk());
-									}
-									break;
+								final TransactionResult lineResult = result.analyzeRow(type, i);
+								final JirafeDataModel model = models.get(i);
+								switch (lineResult.status)
+								{
+									case SUCCESS:
+										model.setStatus(JirafeDataStatus.ACCEPTED);
+										successCount++;
+										if (LOG.isDebugEnabled())
+										{
+											LOG.debug("JirafeData sync : successfully sync'd item {}.", model.getPk());
+										}
+										break;
+									case FAILURE:
+										model.setStatus(JirafeDataStatus.REJECTED);
+										model.setErrors(lineResult.errors.toString());
+										failureCount++;
+										if (LOG.isDebugEnabled())
+										{
+											LOG.debug("JirafeData sync : failed to sync item {}.", model.getPk());
+										}
+										break;
+								}
+								save(model);
 							}
-							save(model);
 						}
-					}
-					break;
-				default:
-					final JirafeDataModel model0 = typeMap.values().iterator().next().models.get(0);
-					model0.setStatus(JirafeDataStatus.NOT_AUTHORIZED);
-					model0.setErrors(NOT_AUTHORIZED);
-					authFailureCount++;
-					if (LOG.isDebugEnabled())
-					{
-						LOG.debug("JirafeData sync : failed to sync - NOT_AUTHORIZED");
-					}
-					save(model0);
-					break;
+						break;
+					default:
+						final JirafeDataModel model0 = typeMap.values().iterator().next().models.get(0);
+						model0.setStatus(JirafeDataStatus.NOT_AUTHORIZED);
+						model0.setErrors(NOT_AUTHORIZED);
+						authFailureCount++;
+						if (LOG.isDebugEnabled())
+						{
+							LOG.debug("JirafeData sync : failed to sync - NOT_AUTHORIZED");
+						}
+						save(model0);
+						continue;
+				}
+				break;
 			}
 		}
 		catch (final Exception e)
@@ -253,27 +264,23 @@ public class HttpSyncStrategy implements JirafeDataSyncStrategy
 				new Integer[]
 				{ successCount, failureCount, authFailureCount });
 
-		if (authFailureCount >= Config.getInt(MAX_RETRY, 5))
+		if (authFailureCount >= maxRetries)
 		{
 			LOG.error("JirafeData sync : Cancelling processing, reached max auth failures ({})", Integer.valueOf(authFailureCount));
-			throw new RuntimeException("JirafeData sync : Cancelling processing, reached max auth failures");
+			throw new AuthenticationException();
 		}
 	}
 
 	private void save(final JirafeDataModel model)
 	{
-		if (model instanceof JirafeCatalogDataModel)
-		{
-			((JirafeCatalogDataModel) model).save();
-		}
-		else
+		if (!(model instanceof JirafeTempDataModel))
 		{
 			modelService.save(model);
 		}
 	}
 
 	@Override
-	public void flush()
+	public void flush() throws AuthenticationException
 	{
 		for (final String site : queue.keySet())
 		{

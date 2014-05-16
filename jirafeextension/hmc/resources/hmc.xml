@@ -19,12 +19,55 @@
 
 	<!-- Configuration for extension jirafeextension -->
 
-<!--
+	<type name="JirafeData" mode="append">
+		<organizer>
+			<search>
+				<condition attribute="site" mode="replace" />
+				<condition attribute="type" mode="replace" />
+				<condition attribute="status" mode="replace" />
+			</search>
+			<result><listview><itemlayout>
+				<attribute name="site" />
+				<attribute name="type" />
+				<attribute name="status" />
+				<attribute name="errors" />
+			</itemlayout></listview></result>
+	        <editor>
+	            <tab name="administration" id="tab_administration">
+	                <section name="Data" position="0" mode="replace">
+	                    <listlayout>
+	                        <attribute name="typePK"    mode="replace" />
+	                        <attribute name="type"      mode="replace" />
+	                        <attribute name="site"      mode="replace" />
+	                        <attribute name="data"      mode="replace" ><textareaeditor cols="80" expanded="true" wrap="true" /></attribute>
+	                        <attribute name="status"    mode="replace" />
+	                        <attribute name="errors"    mode="replace" ><textareaeditor cols="80" expanded="true" wrap="true" /></attribute>
+	                        <attribute name="timestamp" mode="replace" />
+	                    </listlayout>
+	                </section>
+	            </tab>
+	        </editor>
+		</organizer>
+	</type>
+
+	<type name="JirafeMappingDefinitions" mode="append">
+		<organizer>
+			<search autoperform="true"><condition attribute="type" mode="replace" /></search>
+			<result><listview><itemlayout><attribute name="type" /></itemlayout></listview></result>
+			<editor mode="append">
+				<customtab name="tab.datamaps.name" classname="org.jirafe.hmc.administration.DataMapsDisplayChip" />
+			</editor>
+		</organizer>
+	</type>
+
 	<explorertree>
-		<group name="jirafeextensiongroup">
-			<externalnode classname="org.jirafe.hmc.JirafeextensionTreeLeafChip"/>		
+		<group name="jirafeextensiongroup" description="group.jirafe.description">
+			<externalnode classname="org.jirafe.hmc.administration.StatusTreeNodeChip" description="typeref.status.description" />
+			<typeref type="JirafeData"  description="typeref.jirafedata.description" />
+			<typeref type="JirafeMappingDefinitions" description="typeref.datamaps.description" />
+			<externalnode classname="org.jirafe.hmc.administration.SyncTreeNodeChip" description="typeref.sync.description" />
 		</group>
 	</explorertree>
--->
+
 
 </configuration>

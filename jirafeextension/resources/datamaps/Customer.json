@@ -34,5 +34,16 @@
         return model.hasProperty('defaultB2BUnit') ?
             model.defaultB2BUnit?.name : null
     }",
-    "active_flag": "loginDisabled@{return ! loginDisabled}"
+    "active_flag": "loginDisabled@{return ! loginDisabled}",
+    "segments": "@{
+        // anonymous user doesn't have useful segment info
+        if (model.uid == 'anonymous') return null;
+        if (!model.hasProperty('segmentResults')) return null
+        def segmentResults = model.segmentResults
+        def uids = new HashSet()
+        segmentResults?.each{
+            if (it.segment.catalogVersion.active) uids.add(it.segment.uid)
+        }
+        return uids ?: null
+    }"
 }

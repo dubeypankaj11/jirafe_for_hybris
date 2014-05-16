@@ -4,15 +4,18 @@
 package org.jirafe.cronjob;
 
 import de.hybris.platform.servicelayer.search.FlexibleSearchQuery;
+import de.hybris.platform.util.Config;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.jirafe.enums.JirafeDataStatus;
 import org.jirafe.model.cronjob.JirafeDataSyncCronJobModel;
 import org.jirafe.model.data.JirafeDataModel;
 import org.jirafe.strategy.JirafeDataSyncStrategy;
+import org.jirafe.strategy.JirafeDataSyncStrategy.AuthenticationException;
 
 
 /**
@@ -25,9 +28,11 @@ public class JirafeDataSyncJobPerformable extends JirafeBaseJobPerformable<Jiraf
 {
 
 	private static final String jobName = "jirafeDataSyncJob";
-	private static final String query = "SELECT {" + JirafeDataModel.PK + "},{" + JirafeDataModel.TYPE + "},{"
-			+ JirafeDataModel.DATA + "} FROM {" + JirafeDataModel._TYPECODE + "} WHERE {" + JirafeDataModel.STATUS
-			+ "} IN (?status) ORDER BY {" + JirafeDataModel.TIMESTAMP + "} ASC";
+	private static final String begQuery = //
+	"SELECT {" + JirafeDataModel.PK + "},{" + JirafeDataModel.TYPE + "},{" + JirafeDataModel.DATA + "} " + //
+			"FROM {" + JirafeDataModel._TYPECODE + "} " + //
+			"WHERE {" + JirafeDataModel.STATUS + "} IN (?status) ORDER BY ";
+	private static final String endQuery = "{" + JirafeDataModel.TIMESTAMP + "} ASC";
 
 	private JirafeDataSyncStrategy syncStrategy;
 
@@ -46,13 +51,15 @@ public class JirafeDataSyncJobPerformable extends JirafeBaseJobPerformable<Jiraf
 	 * @see org.jirafe.cronjob.JirafeBaseJobPerformable#perform(java.util.List)
 	 */
 	@Override
-	protected void perform(final List<JirafeDataModel> data)
+	protected void perform(final List<JirafeDataModel> data) throws AuthenticationException
 	{
 		syncStrategy.sync(data);
+		// Need to sync each batch since the query depends on updated status
+		syncStrategy.flush();
 	}
 
 	@Override
-	protected void flush()
+	protected void flush() throws AuthenticationException
 	{
 		syncStrategy.flush();
 	}
@@ -65,7 +72,19 @@ public class JirafeDataSyncJobPerformable extends JirafeBaseJobPerformable<Jiraf
 	@Override
 	protected String getQuery()
 	{
-		return JirafeDataSyncJobPerformable.query;
+		final StringBuilder orderBy = new StringBuilder();
+		final String order = Config.getString("jirafe.jirafeDataSync.order", "Order,Cart,Employee,Customer,Category,Product");
+		int idx = 0;
+		if (!StringUtils.isEmpty(order))
+		{
+			orderBy.append("(CASE {" + JirafeDataModel.TYPE + "} ");
+			for (final String type : StringUtils.split(order, ','))
+			{
+				orderBy.append(String.format("WHEN '%s' THEN %d ", type, ++idx));
+			}
+			orderBy.append(String.format("ELSE %d END) ASC, ", ++idx));
+		}
+		return begQuery + orderBy.toString() + endQuery;
 	}
 
 	/*

@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package org.jirafe.dto;
 
@@ -14,7 +14,6 @@ import javax.annotation.Resource;
 import org.jirafe.converter.JirafeConvertException;
 import org.jirafe.converter.JirafeJsonConverter;
 import org.jirafe.dao.JirafeMappingsDao;
-import org.jirafe.model.data.JirafeCatalogSyncDataModel;
 import org.jirafe.model.data.JirafeDataModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,16 +25,36 @@ import org.springframework.stereotype.Component;
  * 
  */
 @Component
-public class JirafeCatalogDataModelFactory
+public class JirafeTempDataModelFactory
 {
-	private static final Logger LOG = LoggerFactory.getLogger(JirafeCatalogDataModelFactory.class);
+	private static final Logger LOG = LoggerFactory.getLogger(JirafeTempDataModelFactory.class);
 
 	@Resource
 	private JirafeJsonConverter jirafeJsonConverter;
 	@Resource
 	private JirafeMappingsDao jirafeMappingsDao;
 
-	public List<JirafeDataModel> fromItemModel(final JirafeCatalogSyncDataModel header, final ItemModel itemModel)
+	public JirafeDataModel fromItemModel(final String mappedType, final ItemModel itemModel, final String site)
+	{
+		try
+		{
+			final Map map = jirafeJsonConverter.toMap(new JirafeDataDto(mappedType, itemModel, site));
+			final String json = jirafeJsonConverter.toJson(map);
+			final JirafeTempDataModel jirafeTempDataModel = new JirafeTempDataModel();
+			jirafeTempDataModel.setSite(site);
+			jirafeTempDataModel.setType(mappedType);
+			jirafeTempDataModel.setData(json);
+			return jirafeTempDataModel;
+		}
+		catch (final JirafeConvertException e)
+		{
+			LOG.error("failed to map item {}", itemModel.getPk());
+			LOG.debug("", e);
+			return null;
+		}
+	}
+
+	public List<JirafeDataModel> fromItemModel(final ItemModel itemModel)
 	{
 		final String itemType = itemModel.getItemtype();
 		final String mappedType = jirafeMappingsDao.getMappedType(itemModel);
@@ -50,23 +69,15 @@ public class JirafeCatalogDataModelFactory
 			final String[] sites = jirafeJsonConverter.getSites(itemModel);
 			for (final String site : sites)
 			{
-				Map map;
-				map = jirafeJsonConverter.toMap(new JirafeDataDto(mappedType, itemModel, site));
-				final String json = jirafeJsonConverter.toJson(map);
-				final JirafeCatalogDataModel jirafeCatalogDataModel = new JirafeCatalogDataModel(header);
-				jirafeCatalogDataModel.setSite(site);
-				jirafeCatalogDataModel.setType(mappedType);
-				jirafeCatalogDataModel.setData(json);
-				ret.add(jirafeCatalogDataModel);
+				ret.add(fromItemModel(mappedType, itemModel, site));
 			}
+			return ret;
 		}
 		catch (final JirafeConvertException e)
 		{
-			LOG.error("Catalog sync: failed to map item {}.", itemModel.getPk());
+			LOG.error("failed to map item {}", itemModel.getPk());
 			LOG.debug("", e);
 			return null;
 		}
-
-		return ret;
 	}
 }

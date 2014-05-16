@@ -12,7 +12,7 @@
 		http://www.springframework.org/schema/aop/spring-aop-3.1.xsd">
 
     <context:annotation-config />
-    <context:component-scan base-package="org.jirafe.web.controllers" />
+    <context:component-scan base-package="org.jirafe.web.controllers.webservices" />
     <!-- 
     <bean class="org.springframework.beans.factory.config.CustomScopeConfigurer">
         <property name="scopes">

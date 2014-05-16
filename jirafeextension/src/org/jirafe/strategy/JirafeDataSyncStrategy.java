@@ -14,9 +14,13 @@ import org.jirafe.model.data.JirafeDataModel;
  */
 public interface JirafeDataSyncStrategy
 {
+	public class AuthenticationException extends Exception
+	{
+		// Authentication or other transient communication failure
+	}
 
-	public void sync(List<JirafeDataModel> syncData);
+	public void sync(List<JirafeDataModel> syncData) throws AuthenticationException;
 
-	public void flush();
+	public void flush() throws AuthenticationException;
 
 }

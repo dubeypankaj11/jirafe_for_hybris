@@ -6,7 +6,7 @@
             def ret = []
             changedItem = [:]
             for (def entry in entries) {
-                ret += jirafeModelToMapConverter.toMap(entry, 'AbstractOrderEntry', null)
+                ret.add(jirafeModelToMapConverter.toMap(entry, 'AbstractOrderEntry', null))
             }
             return ret.size > 0 ? ret : null
         }
@@ -17,14 +17,14 @@
             def changedItems = jirafeModelToMapConverter.changedItems(model)
             for (def item in model.entries) {
                 changedItem = changedItems[item.product.pk] ?: [:]
-                done += item.product.pk
+                done.add(item.product.pk)
                 if (changedItem && !changedItem.modifiedtime) continue
-                ret += jirafeModelToMapConverter.toMap(item, 'AbstractOrderEntry', null)
+                ret.add(jirafeModelToMapConverter.toMap(item, 'AbstractOrderEntry', null))
             }
             for (def key in changedItems.keySet()) {
                 if (key in done) continue
                 changedItem = changedItems[key]
-                ret += jirafeModelToMapConverter.toMap(new AbstractOrderEntryModel(), 'AbstractOrderEntry', null)
+                ret.add(jirafeModelToMapConverter.toMap(new AbstractOrderEntryModel(), 'AbstractOrderEntry', null))
             }
             return ret.size > 0 ? ret : null
         }
@@ -33,11 +33,12 @@
     "id": "pk@{
         return (changedItem.pk ?: pk).toString()
     }",
-    "create_date": "creationtime@{
-        return dateFormat.format(changedItem.creationtime ?: creationtime)
+    "create_date": "@{
+        aoeCreateTime = changedItem.creationtime ?: model?.creationtime ?: model?.modifiedtime ?: new Date()
+        return dateFormat.format(aoeCreateTime)
     }",
     "change_date": "modifiedtime@{
-        return dateFormat.format(changedItem.modifiedtime ?: modifiedtime)
+        return dateFormat.format(changedItem.modifiedtime ?: modifiedtime ?: aoeCreateTime)
     }",
     "cart_item_number": "@{
         import de.hybris.platform.core.model.order.OrderModel

@@ -47,7 +47,7 @@ public class JirafeDataCleanUpJobPerformable extends JirafeBaseJobPerformable<Ji
 	@Override
 	protected void perform(final List<JirafeDataModel> data)
 	{
-		LOG.info("About to remove {} {} jirafe data items.", data.size(), Config.getString(cleanUpStatusesProp, "ACCEPTED"));
+		LOG.debug("About to remove {} {} jirafe data items.", data.size(), Config.getString(cleanUpStatusesProp, "ACCEPTED"));
 		modelService.removeAll(data);
 		LOG.info("Removed {} {} jirafe data items.", data.size(), Config.getString(cleanUpStatusesProp, "ACCEPTED"));
 	}
@@ -85,15 +85,6 @@ public class JirafeDataCleanUpJobPerformable extends JirafeBaseJobPerformable<Ji
 		}
 
 		query.addQueryParameter("statuses", dataStatuses);
-	}
-
-	/**
-	 * Returns 0 in this case, since we should always start at 0 since records are getting removed.
-	 */
-	@Override
-	protected int getStart(final int start, final int batchSize)
-	{
-		return 0;
 	}
 
 	/**

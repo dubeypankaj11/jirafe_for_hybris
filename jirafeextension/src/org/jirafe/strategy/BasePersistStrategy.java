@@ -3,6 +3,7 @@
  */
 package org.jirafe.strategy;
 
+import de.hybris.platform.core.PK;
 import de.hybris.platform.core.model.ItemModel;
 
 import java.util.Map;
@@ -44,9 +45,15 @@ public abstract class BasePersistStrategy implements JirafeDataPersistStrategy
 		}
 
 		final ItemModel itemModel = jirafeDataDto.getItemModel();
-
 		if (itemModel == null)
 		{
+			log.debug("{}: itemModel is null, skipping...");
+			return;
+		}
+		final PK pk = itemModel.getPk();
+		if (pk == null)
+		{
+			log.debug("{}: pk is null, skipping...");
 			return;
 		}
 
@@ -65,8 +72,11 @@ public abstract class BasePersistStrategy implements JirafeDataPersistStrategy
 		try
 		{
 			log.debug("JsonConverter returned: {}", jsonRepresentation);
-			jirafeDataDao.save(jirafeDataDto.getJirafeTypeCode(), itemModel.getPk().toString(), jsonRepresentation,
-					jirafeDataDto.getSite(), false);
+
+			final String typeCode = jirafeDataDto.getJirafeTypeCode();
+			final String site = jirafeDataDto.getSite();
+
+			jirafeDataDao.save(typeCode, pk.toString(), jsonRepresentation, site, false);
 		}
 		catch (final Exception e)
 		{

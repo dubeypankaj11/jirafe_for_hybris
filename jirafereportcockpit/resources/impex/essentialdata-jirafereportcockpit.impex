@@ -1,0 +1,7 @@
+$lang=en;;;;
+
+INSERT_UPDATE StaticLink;code[unique=true];area(code);sortorder;title[lang=$lang];description[lang=$lang];descriptionIcon(code)
+;jirafe;platform;1;Jirafe;View Jirafe reports;mcc-jirafe.png
+
+INSERT_UPDATE StaticLink;code[unique=true];readPrincipals(uid);extensionName;parentLink(code);url(code)
+;jirafe;employeegroup;reportcockpit;reportCockpit;{reportcockpit}/index.zul?persp=cockpit.perspective.jirafereport

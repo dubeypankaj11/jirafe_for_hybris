@@ -1,7 +1,7 @@
 /**
  * 
  */
-package org.jirafe.web.controllers;
+package org.jirafe.web.controllers.webservices;
 
 import java.util.HashMap;
 import java.util.Map;

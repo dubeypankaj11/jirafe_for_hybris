@@ -30,6 +30,13 @@ public class JirafeOauthDaoTest extends ServicelayerTransactionalTest
 	private ModelService modelService;
 
 	@Test
+	public void testSaveAndLoad()
+	{
+		// Need to run both in one test so no rollback in between
+		testSave();
+		testLoad();
+	}
+
 	public void testSave()
 	{
 
@@ -46,7 +53,6 @@ public class JirafeOauthDaoTest extends ServicelayerTransactionalTest
 		assertNotNull(model.getTimestamp());
 	}
 
-	@Test
 	public void testLoad()
 	{
 		final JirafeOAuthConfigModel model = jirafeOAuth2SessionConfigDao.getSessionConfig();

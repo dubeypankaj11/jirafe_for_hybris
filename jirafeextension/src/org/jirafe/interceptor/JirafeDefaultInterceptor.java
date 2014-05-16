@@ -6,11 +6,11 @@ package org.jirafe.interceptor;
 import de.hybris.platform.core.PK;
 import de.hybris.platform.core.Registry;
 import de.hybris.platform.core.model.ItemModel;
-import de.hybris.platform.core.model.c2l.LanguageModel;
 import de.hybris.platform.core.model.order.AbstractOrderEntryModel;
-import de.hybris.platform.core.model.order.CartModel;
+import de.hybris.platform.core.model.user.EmployeeModel;
 import de.hybris.platform.jalo.Item;
 import de.hybris.platform.jalo.JaloObjectNoLongerValidException;
+import de.hybris.platform.search.restriction.SearchRestrictionService;
 import de.hybris.platform.servicelayer.exceptions.AttributeNotSupportedException;
 import de.hybris.platform.servicelayer.i18n.daos.LanguageDao;
 import de.hybris.platform.servicelayer.interceptor.InterceptorContext;
@@ -20,7 +20,7 @@ import de.hybris.platform.servicelayer.interceptor.ValidateInterceptor;
 import de.hybris.platform.servicelayer.model.ModelService;
 import de.hybris.platform.servicelayer.session.SessionExecutionBody;
 import de.hybris.platform.servicelayer.session.SessionService;
-import de.hybris.platform.servicelayer.user.daos.UserDao;
+import de.hybris.platform.servicelayer.user.UserService;
 import de.hybris.platform.util.Config;
 
 import java.util.Locale;
@@ -132,27 +132,27 @@ public class JirafeDefaultInterceptor implements ValidateInterceptor, RemoveInte
 		// Use the product pk rather than the entry pk since the entry pk won't be assigned
 		// until after the entry is persisted the first time.
 		PK productPK = null;
-
-		final JirafeChangeTrackerDao jirafeChangeTrackerDao;
+		JirafeChangeTrackerDao jirafeChangeTrackerDao = null;
 		if (itemModel instanceof AbstractOrderEntryModel)
 		{
-			final AbstractOrderEntryModel abstractOrderEntryModel = (AbstractOrderEntryModel) itemModel;
-			productPK = abstractOrderEntryModel.getProduct().getPk();
-			final PK containerPK = abstractOrderEntryModel.getOrder().getPk();
-			jirafeChangeTrackerDao = new JirafeChangeTrackerDao(containerPK);
 			try
 			{
-				// We don't get modifiedtime so force it here
-				jirafeChangeTrackerDao.save(productPK, "modifiedtime", source == null ? null : source.getAttribute("modifiedtime"));
+				final AbstractOrderEntryModel abstractOrderEntryModel = (AbstractOrderEntryModel) itemModel;
+				productPK = abstractOrderEntryModel.getProduct().getPk();
+				final PK containerPK = abstractOrderEntryModel.getOrder().getPk();
+				if (productPK != null && containerPK != null)
+				{
+					jirafeChangeTrackerDao = new JirafeChangeTrackerDao(containerPK);
+					// We don't get modifiedtime so force it here
+					jirafeChangeTrackerDao
+							.save(productPK, "modifiedtime", source == null ? null : source.getAttribute("modifiedtime"));
+				}
 			}
 			catch (final Exception e)
 			{
+				// Continue with change debug logging in any case
 				LOG.debug("", e);
 			}
-		}
-		else
-		{
-			jirafeChangeTrackerDao = null;
 		}
 		for (final String att : dirtyAttributes.keySet())
 		{
@@ -199,7 +199,7 @@ public class JirafeDefaultInterceptor implements ValidateInterceptor, RemoveInte
 					// Just skip it
 				}
 			}
-			if (productPK != null)
+			if (jirafeChangeTrackerDao != null)
 			{
 				jirafeChangeTrackerDao.save(productPK, att.toLowerCase(), orig);
 			}
@@ -208,11 +208,28 @@ public class JirafeDefaultInterceptor implements ValidateInterceptor, RemoveInte
 	}
 
 	/**
-	 * Handles all intercepter events.
+	 * Wrap the interceptor with an exception catch-all
 	 * 
 	 * @param model
 	 */
 	protected void onIntercept(final Object model, final boolean isRemove, final InterceptorContext ctx)
+	{
+		try
+		{
+			onInterceptInternal(model, isRemove, ctx);
+		}
+		catch (final Exception e)
+		{
+			LOG.error("Unexpected exception in Jirafe interceptor (ignored, but please report)", e);
+		}
+	}
+
+	/**
+	 * Handles all intercepter events.
+	 * 
+	 * @param model
+	 */
+	protected void onInterceptInternal(final Object model, final boolean isRemove, final InterceptorContext ctx)
 	{
 
 		if (!isEnabled())
@@ -223,8 +240,20 @@ public class JirafeDefaultInterceptor implements ValidateInterceptor, RemoveInte
 
 		final ItemModel itemModel = (ItemModel) model;
 		final SessionService sessionService = (SessionService) Registry.getApplicationContext().getBean("sessionService");
-		final UserDao userDao = (UserDao) Registry.getApplicationContext().getBean("userDao");
 		final LanguageDao languageDao = (LanguageDao) Registry.getApplicationContext().getBean("languageDao");
+
+		final UserService userService = (UserService) Registry.getApplicationContext().getBean("userService");
+		final SearchRestrictionService searchRestrictionService = (SearchRestrictionService) Registry.getApplicationContext()
+				.getBean("searchRestrictionService");
+		final EmployeeModel jirafeUser = (EmployeeModel) sessionService.executeInLocalView(new SessionExecutionBody()
+		{
+			@Override
+			public Object execute()
+			{
+				searchRestrictionService.disableSearchRestrictions();
+				return userService.getUserForUID("jirafeuser", EmployeeModel.class);
+			}
+		});
 		sessionService.executeInLocalView(new SessionExecutionBody()
 		{
 			@Override
@@ -234,7 +263,6 @@ public class JirafeDefaultInterceptor implements ValidateInterceptor, RemoveInte
 				{
 					LOG.debug("Intercepted {}", itemModel);
 					sessionService.setAttribute("language", languageDao.findLanguagesByCode("en").get(0));
-					LOG.debug("Language set to {}", ((LanguageModel) sessionService.getAttribute("language")).getIsocode());
 
 					if (noChanges(itemModel, isRemove, ctx))
 					{
@@ -265,20 +293,14 @@ public class JirafeDefaultInterceptor implements ValidateInterceptor, RemoveInte
 				{
 					LOG.debug("Intercepted removed item {}", e.getMessage());
 
-					// It's ok to lose a cart
-					if (!(itemModel instanceof CartModel))
-					{
-						throw e;
-					}
+					// No much else we can do if the item's disappeared
 				}
 				catch (final Exception e)
 				{
 					LOG.error("Failed to map intercepted object {} due to: ", itemModel, e);
 				}
 			}
-		}, userDao.findUserByUID("jirafeuser"));
-
-		LOG.debug("Language reverted to {}", ((LanguageModel) sessionService.getAttribute("language")).getIsocode());
+		}, jirafeUser);
 	}
 
 	/*

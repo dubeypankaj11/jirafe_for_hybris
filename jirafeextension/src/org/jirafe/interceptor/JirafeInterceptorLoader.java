@@ -10,9 +10,10 @@ import de.hybris.platform.servicelayer.interceptor.impl.DefaultInterceptorRegist
 import de.hybris.platform.servicelayer.interceptor.impl.InterceptorMapping;
 import de.hybris.platform.servicelayer.model.ModelService;
 
-import java.lang.reflect.Method;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.annotation.Resource;
 
@@ -32,6 +33,7 @@ public class JirafeInterceptorLoader extends AbstractEventListener<AfterSessionC
 {
 	private final static Logger LOG = LoggerFactory.getLogger(JirafeInterceptorLoader.class);
 	private boolean loaded = false;
+	private final Set<String> registeredInterceptors = new HashSet<String>();
 	private final Object _interceptorRegistryLock = new Object();
 	private InterceptorRegistry _interceptorRegistry;
 
@@ -61,7 +63,7 @@ public class JirafeInterceptorLoader extends AbstractEventListener<AfterSessionC
 
 		if (definitions == null)
 		{
-			LOG.info("No mapping definitions found, therefore no interceptors will be loaded.");
+			LOG.warn("No mapping definitions found, therefore no interceptors will be loaded.");
 		}
 		else
 		{
@@ -80,6 +82,12 @@ public class JirafeInterceptorLoader extends AbstractEventListener<AfterSessionC
 	{
 		final DefaultInterceptorRegistry interceptorRegistry;
 		final InterceptorMapping mapping;
+
+		if (registeredInterceptors.contains(type))
+		{
+			LOG.info("Interceptor for <{}> already loaded.", type);
+			return;
+		}
 
 		interceptorRegistry = ((DefaultInterceptorRegistry) getInterceptorRegistry());
 		mapping = new InterceptorMapping();
@@ -103,32 +111,24 @@ public class JirafeInterceptorLoader extends AbstractEventListener<AfterSessionC
 
 	public void unregisterInterceptor(final String type)
 	{
-		final DefaultInterceptorRegistry interceptorRegistry;
-		final InterceptorMapping mapping;
-
-		interceptorRegistry = ((DefaultInterceptorRegistry) getInterceptorRegistry());
-		mapping = new InterceptorMapping();
-
-		// Set values using a mapping object, allows for setting order.
-		mapping.setTypeCode(type);
-		// I tried with and without the following and the interceptor doesn't get removed
-		//mapping.setInterceptor(new JirafeDefaultInterceptor(persistStrategy, type, jirafeMappingsDao, modelService));
-		//mapping.setOrder(Integer.MAX_VALUE);
-		//mapping.setReplacedInterceptors(Collections.EMPTY_LIST);
-
-		try
-		{
-			LOG.info("Removing interceptor for <{}>", type);
-			// unregisterInterceptor is not available in Hybris 4
-			final Method method = interceptorRegistry.getClass().getDeclaredMethod("unregisterInterceptor", mapping.getClass());
-			method.invoke(interceptorRegistry, mapping);
-			LOG.warn("Interceptor for type <{}> has been removed, restart server to complete operation", type);
-		}
-		catch (final Exception e)
-		{
-			LOG.error("Failed to remove interceptor for type <{}>, restart server to complete operation", type);
-			LOG.debug("Exception was: ", e);
-		}
+		// I haven't been able to get this to work reliably yet and we never really do it anyway -
+		// they'll need to restart to remove an interceptor.
+		LOG.warn("Interceptor for type <{}> has been removed, restart server to complete operation", type);
+		/*
+		 * final DefaultInterceptorRegistry interceptorRegistry; final InterceptorMapping mapping;
+		 * 
+		 * interceptorRegistry = ((DefaultInterceptorRegistry) getInterceptorRegistry()); mapping = new
+		 * InterceptorMapping();
+		 * 
+		 * // Set values using a mapping object, allows for setting order. mapping.setTypeCode(type); try {
+		 * LOG.info("Removing interceptor for <{}>", type); // unregisterInterceptor is not available in Hybris 4 final
+		 * Method method = interceptorRegistry.getClass().getDeclaredMethod("unregisterInterceptor", mapping.getClass());
+		 * method.invoke(interceptorRegistry, mapping);
+		 * LOG.warn("Interceptor for type <{}> has been removed, restart server to complete operation", type); } catch
+		 * (final Exception e) {
+		 * LOG.error("Failed to remove interceptor for type <{}>, restart server to complete operation", type);
+		 * LOG.debug("Exception was: ", e); }
+		 */
 	}
 
 	@edu.umd.cs.findbugs.annotations.SuppressWarnings(value = "DMI_UNSUPPORTED_METHOD", justification = "because I know better")

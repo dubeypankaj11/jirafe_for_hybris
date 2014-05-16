@@ -3,6 +3,7 @@ INSERT_UPDATE ServicelayerJob;code[unique=true];springId
 ;jirafeCatalogSyncJob;jirafeCatalogSyncJob;jirafeCatalogSyncJob
 ;jirafeDataCleanUpJob;jirafeDataCleanUpJob;jirafeDataCleanUpJob
 ;jirafeHeartbeatJob;jirafeHeartbeatJob;jirafeHeartbeatJob
+;jirafeHistoricalSyncJob;jirafeHistoricalSyncJob;jirafeHistoricalSyncJob
 
 INSERT_UPDATE JirafeDataSyncCronJob; code[unique=true];job(code);singleExecutable;sessionLanguage(isocode)
 ;jirafeDataSyncCronJob;jirafeDataSyncJob;false;en

@@ -3,17 +3,14 @@
  */
 package org.jirafe.webservices;
 
-import de.hybris.platform.cms2.exceptions.CMSItemNotFoundException;
 import de.hybris.platform.cms2.model.site.CMSSiteModel;
 import de.hybris.platform.cms2.servicelayer.services.CMSSiteService;
 import de.hybris.platform.core.Registry;
 import de.hybris.platform.util.Config;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -31,109 +28,93 @@ public class OAuth2ConnectionConfig
 {
 	private static final Logger log = LoggerFactory.getLogger(OAuth2ConnectionConfig.class);
 
-	private final String clientId;
-	private final String clientSecret;
-	private final String username;
-	private final String password;
-	private final String accessToken;
+	private String clientId;
+	private String clientSecret;
+	private String username;
+	private String password;
+	private String accessToken;
 
-	private final String siteId;
+	private String authServerUrl;
+	private String authServerAuthorize;
+	private String authServerAccessToken;
+	private String[] blacklistedSiteIds;
+
+	private String siteId;
 	private String[] siteNames;
-	private String[] siteIds;
+	private Set<String> siteIds;
 	private HashMap<String, String> siteIdMap;
 
-	private final String authServerUrl;
-	private final String authServerAuthorize;
-	private final String authServerAccessToken;
-	private final String[] blacklistedSiteIds;
-
-	private final String eventApiUrl;
-
-	private final int timeOut;
+	private String eventApiUrl;
+	private int timeOut;
 
 	final static String SITE_PREFIX = "jirafe.site.id.";
 
 	public OAuth2ConnectionConfig()
+	{
+		loadConfig();
+	}
+
+	public void loadConfig()
 	{
 		clientId = Config.getString("jirafe.outboundConnectionConfig.client_id", "");
 		clientSecret = Config.getString("jirafe.outboundConnectionConfig.client_secret", "");
 		username = Config.getString("jirafe.outboundConnectionConfig.username", "");
 		password = Config.getString("jirafe.outboundConnectionConfig.password", "");
 		accessToken = Config.getString("jirafe.outboundConnectionConfig.access_token", null);
+
 		authServerUrl = Config.getString("jirafe.outboundConnectionConfig.auth_server_url", "");
 		authServerAuthorize = Config.getString("jirafe.outboundConnectionConfig.auth_server_authorize", "");
 		authServerAccessToken = Config.getString("jirafe.outboundConnectionConfig.auth_server_access_token", "");
-		eventApiUrl = Config.getString("jirafe.outboundConnectionConfig.event_api_url", "");
-		timeOut = Config.getInt("jirafe.outboundConnectionConfig.time_out", 30000);
 		blacklistedSiteIds = StringUtils.split(Config.getString("jirafe.site.ids.blacklist", ""), ",");
 
-		String s = Config.getString("jirafe.site.id", null);
-		if (StringUtils.isEmpty(s) || ArrayUtils.contains(blacklistedSiteIds, s))
+		siteId = null;
+		siteNames = null;
+		siteIds = null;
+		siteIdMap = null;
+
+		eventApiUrl = Config.getString("jirafe.outboundConnectionConfig.event_api_url", "");
+		timeOut = Config.getInt("jirafe.outboundConnectionConfig.time_out", 30000);
+
+		final String s = Config.getString("jirafe.site.id", null);
+		if (!StringUtils.isEmpty(s) && !ArrayUtils.contains(blacklistedSiteIds, s))
 		{
-			s = null;
+			siteId = s;
 		}
-		siteId = s;
 	}
 
 	public void initSiteIdMap()
 	{
-		siteIdMap = new HashMap<String, String>();
-		final Map<String, String> hostToSite = Config.getParametersByPattern(SITE_PREFIX);
+		final HashMap<String, String> siteIdMap = new HashMap<String, String>();
 		final CMSSiteService cmsSiteService = (CMSSiteService) Registry.getApplicationContext().getBean("cmsSiteService");
-		// Find site ids we've assigned them
-		for (final String key : hostToSite.keySet())
-		{
-			final String siteId = hostToSite.get(key);
-			if (ArrayUtils.contains(blacklistedSiteIds, siteId))
-			{
-				log.debug("Skipping blacklisted site {}={}", key, siteId);
-				continue;
-			}
-			final String host = key.substring(SITE_PREFIX.length());
-			final String spec = "http://" + host;
-			try
-			{
-				final CMSSiteModel cmsSiteModel = cmsSiteService.getSiteForURL(new URL(spec));
-				final String siteName = cmsSiteModel.getUid();
-				log.debug("Assigning site id {} to {}", siteId, siteName);
-				siteIdMap.put(siteName, siteId);
-			}
-			catch (final CMSItemNotFoundException e)
-			{
-				log.error(e.getMessage());
-			}
-			catch (final MalformedURLException e)
-			{
-				log.error(e.getMessage());
-			}
-		}
-		// Warn about any missing site ids and default them to the default site id, if present
 		for (final CMSSiteModel cmsSiteModel : cmsSiteService.getSites())
 		{
-			log.debug("Checking site {}", cmsSiteModel.getUid());
+			final String siteName = cmsSiteModel.getUid();
 			if (!cmsSiteModel.getActive().booleanValue())
 			{
+				log.info("Skipping  inactive site {}", siteName);
 				continue;
 			}
-			final String siteName = cmsSiteModel.getUid();
-			if (!siteIdMap.containsKey(siteName))
+			String siteId = Config.getParameter(SITE_PREFIX + siteName);
+			if (siteId == null)
 			{
-				if (siteId != null)
+				siteId = this.siteId;
+				if (siteId == null)
 				{
-					log.warn("Missing site ID for site {}, using default site ID", siteName);
-					siteIdMap.put(siteName, siteId);
-				}
-				else
-				{
-					log.warn("Missing site ID for site {}, skipping...", siteName);
+					log.warn("No site id supplied for site {}, site will not be monitored", siteName);
+					continue;
 				}
 			}
+			if (ArrayUtils.contains(blacklistedSiteIds, siteId))
+			{
+				log.error("Skipping blacklisted site {}={}", siteName, siteId);
+				continue;
+			}
+			log.info("Initializing site map: {}={}", siteName, siteId);
+			siteIdMap.put(siteName, siteId);
 		}
-		final HashSet siteIdSet = new HashSet(siteIdMap.values());
-		siteIds = new String[siteIdSet.size()];
-		siteIdSet.toArray(siteIds);
-
-		siteNames = siteIdMap.keySet().toArray(new String[0]);
+		this.siteIds = new HashSet(siteIdMap.values());
+		this.siteNames = siteIdMap.keySet().toArray(new String[0]);
+		this.siteIdMap = siteIdMap;
 	}
 
 	/**
@@ -187,7 +168,7 @@ public class OAuth2ConnectionConfig
 	/**
 	 * @return the siteIds
 	 */
-	public String[] getSiteIds()
+	public Set<String> getSiteIds()
 	{
 		if (siteIds == null)
 		{
@@ -209,12 +190,16 @@ public class OAuth2ConnectionConfig
 	}
 
 	/**
-	 * @return the siteId
+	 * @return the siteId given either a siteId or siteName
 	 */
 	public String getSiteId(final String site)
 	{
 		if (!StringUtils.isEmpty(site))
 		{
+			if (getSiteIds().contains(site))
+			{
+				return site;
+			}
 			return getSiteIdMap().get(site);
 		}
 		return siteId;
@@ -223,11 +208,11 @@ public class OAuth2ConnectionConfig
 	public String getSiteNameFromId(final String siteId)
 	{
 		final HashMap<String, String> siteIdMap = getSiteIdMap();
-		for (final String site : siteIdMap.keySet())
+		for (final String siteName : siteIdMap.keySet())
 		{
-			if (siteIdMap.get(site).equals(siteId))
+			if (siteIdMap.get(siteName).equals(siteId))
 			{
-				return site;
+				return siteName;
 			}
 		}
 		return null;

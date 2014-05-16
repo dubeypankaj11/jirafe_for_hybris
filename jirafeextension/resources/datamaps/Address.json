@@ -4,7 +4,8 @@
     "address2": "line2@{return line2 ?: null}",
     "city": "town",
     "state": "region@{
-        if (region?.isocodeShort && !region.isocodeShort?.isNumber()) return region.isocodeShort
+        if (region.hasProperty('isocodeShort') && region?.isocodeShort && !region.isocodeShort?.isNumber()) return region.isocodeShort
+        if (region.hasProperty('isocode') && region?.isocode && region.isocode.startsWith('US-')) return region.isocode[3..-1]
         return region?.name ?: null
     }",
     "postalcode": "postalcode@{return postalcode ?: null}",

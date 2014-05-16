@@ -70,4 +70,9 @@ public interface JirafeMappingsDao
 	 */
 	String getEndPointName(String type);
 
+	/**
+	 * @return
+	 */
+	List<String> getAllMappedTypes();
+
 }

@@ -9,7 +9,7 @@ INSERT_UPDATE JirafeMappingDefinitions;type;definition;filter;endPointName[uniqu
             def ret = []
             changedItem = [:]
             for (def entry in entries) {
-                ret += jirafeModelToMapConverter.toMap(entry, 'AbstractOrderEntry', null)
+                ret.add(jirafeModelToMapConverter.toMap(entry, 'AbstractOrderEntry', null))
             }
             return ret.size > 0 ? ret : null
         }
@@ -20,14 +20,14 @@ INSERT_UPDATE JirafeMappingDefinitions;type;definition;filter;endPointName[uniqu
             def changedItems = jirafeModelToMapConverter.changedItems(model)
             for (def item in model.entries) {
                 changedItem = changedItems[item.product.pk] ?: [:]
-                done += item.product.pk
+                done.add(item.product.pk)
                 if (changedItem && !changedItem.modifiedtime) continue
-                ret += jirafeModelToMapConverter.toMap(item, 'AbstractOrderEntry', null)
+                ret.add(jirafeModelToMapConverter.toMap(item, 'AbstractOrderEntry', null))
             }
             for (def key in changedItems.keySet()) {
                 if (key in done) continue
                 changedItem = changedItems[key]
-                ret += jirafeModelToMapConverter.toMap(new AbstractOrderEntryModel(), 'AbstractOrderEntry', null)
+                ret.add(jirafeModelToMapConverter.toMap(new AbstractOrderEntryModel(), 'AbstractOrderEntry', null))
             }
             return ret.size > 0 ? ret : null
         }
@@ -36,11 +36,12 @@ INSERT_UPDATE JirafeMappingDefinitions;type;definition;filter;endPointName[uniqu
     ""id"": ""pk@{
         return (changedItem.pk ?: pk).toString()
     }"",
-    ""create_date"": ""creationtime@{
-        return dateFormat.format(changedItem.creationtime ?: creationtime)
+    ""create_date"": ""@{
+        aoeCreateTime = changedItem.creationtime ?: model?.creationtime ?: model?.modifiedtime ?: new Date()
+        return dateFormat.format(aoeCreateTime)
     }"",
     ""change_date"": ""modifiedtime@{
-        return dateFormat.format(changedItem.modifiedtime ?: modifiedtime)
+        return dateFormat.format(changedItem.modifiedtime ?: modifiedtime ?: aoeCreateTime)
     }"",
     ""cart_item_number"": ""@{
         import de.hybris.platform.core.model.order.OrderModel
@@ -81,7 +82,8 @@ INSERT_UPDATE JirafeMappingDefinitions;type;definition;filter;endPointName[uniqu
     ""address2"": ""line2@{return line2 ?: null}"",
     ""city"": ""town"",
     ""state"": ""region@{
-        if (region?.isocodeShort && !region.isocodeShort?.isNumber()) return region.isocodeShort
+        if (region.hasProperty('isocodeShort') && region?.isocodeShort && !region.isocodeShort?.isNumber()) return region.isocodeShort
+        if (region.hasProperty('isocode') && region?.isocode && region.isocode.startsWith('US-')) return region.isocode[3..-1]
         return region?.name ?: null
     }"",
     ""postalcode"": ""postalcode@{return postalcode ?: null}"",
@@ -144,7 +146,9 @@ INSERT_UPDATE JirafeMappingDefinitions;type;definition;filter;endPointName[uniqu
     ""__sites__"": ""catalogVersion.catalog.baseStores@{
         def sites = []
         for (def store in baseStores) {
-            sites.add(store.uid)
+            for (def cmsSite: store.cmsSites) {
+                sites.add(cmsSite.uid)
+            }
         }
         return sites
     }"",
@@ -204,7 +208,18 @@ INSERT_UPDATE JirafeMappingDefinitions;type;definition;filter;endPointName[uniqu
         return model.hasProperty('defaultB2BUnit') ?
             model.defaultB2BUnit?.name : null
     }"",
-    ""active_flag"": ""loginDisabled@{return ! loginDisabled}""
+    ""active_flag"": ""loginDisabled@{return ! loginDisabled}"",
+    ""segments"": ""@{
+        // anonymous user doesn't have useful segment info
+        if (model.uid == 'anonymous') return null;
+        if (!model.hasProperty('segmentResults')) return null
+        def segmentResults = model.segmentResults
+        def uids = new HashSet()
+        segmentResults?.each{
+            if (it.segment.catalogVersion.active) uids.add(it.segment.uid)
+        }
+        return uids ?: null
+    }""
 }
 ";"return true
 ";customer
@@ -247,14 +262,6 @@ INSERT_UPDATE JirafeMappingDefinitions;type;definition;filter;endPointName[uniqu
     ""customer"": ""user@{
         return jirafeModelToMapConverter.toMap(user, 'Customer', null)
     }"",
-    ""order_date"": ""date@{return dateFormat.format(date)}"",
-    ""create_date"": ""@{
-        createDate = dateFormat.format(model?.creationtime ?: model?.modifiedtime ?: new Date())
-        return createDate
-    }"",
-    ""change_date"": ""@{
-        return model?.modifiedtime ? dateFormat.format(model?.modifiedtime) : createDate
-    }"",
     ""raw_status"": ""status@{status?.code}"",
     ""status"": ""status@{
         orderStatus = [
@@ -263,6 +270,20 @@ INSERT_UPDATE JirafeMappingDefinitions;type;definition;filter;endPointName[uniqu
             COMPLETED: 'accepted',
         ][status?.code] ?: null
         return orderStatus
+    }"",
+    ""create_date"": ""@{
+        createDate = dateFormat.format(model?.creationtime ?: model?.modifiedtime ?: new Date())
+        return createDate
+    }"",
+    ""change_date"": ""@{
+        changeDate = model?.modifiedtime ? dateFormat.format(model?.modifiedtime) : createDate
+        return changeDate
+    }"",
+    ""order_date"": ""date@{
+        if (orderStatus == 'accepted' ) return dateFormat.format(date)
+    }"",
+    ""cancel_date"": ""@{
+        if (orderStatus == 'cancelled') return changeDate
     }"",
     ""subtotal"": ""subtotal"",
     ""total"": ""totalPrice"",
@@ -284,6 +305,26 @@ INSERT_UPDATE JirafeMappingDefinitions;type;definition;filter;endPointName[uniqu
     ""payment_address"": ""paymentAddress@{
         if (!paymentAddress) return null
         return jirafeModelToMapConverter.toMap(paymentAddress, 'Address', null)
+    }"",
+    ""payment_method"": ""paymentInfo@{
+        // Strip off leading de.hybris...
+        // and trailing PaymentInfoModel, if present
+        // leaving something like 'CreditCard'
+        return paymentInfo?.class?.name?.replaceAll('^(.*\\\\.)?(.*?)(PaymentInfoModel)?$', '$2')
+    }"",
+    ""payment_card_type"": ""paymentInfo@{
+        return paymentInfo.hasProperty('type') ? paymentInfo.type?.code : null
+    }"",
+    ""discount_codes"": ""@{
+        import de.hybris.platform.core.Registry
+        import de.hybris.platform.promotions.PromotionsService
+        PromotionsService promotionsService = ((PromotionsService)
+            Registry.getApplicationContext().getBean('promotionsService'))
+        def codes = []
+        promotionsService.getPromotionResults(model)?.firedProductPromotions?.each{
+            codes.add(it.promotion.code)
+        }
+        return codes ?: null
     }""
 }
 ";"import de.hybris.platform.util.Config
@@ -300,11 +341,12 @@ return (
 )
 ";order
 ;Product;"{
-    ""__sites__"": ""@{
-        def baseStores = model?.catalogVersion?.catalog?.baseStores
+    ""__sites__"": ""catalogVersion.catalog.baseStores@{
         def sites = []
         for (def store in baseStores) {
-            sites.add(store.uid)
+            for (def cmsSite: store.cmsSites) {
+                sites.add(cmsSite.uid)
+            }
         }
         return sites
     }"",
@@ -364,10 +406,12 @@ return (
     }"",
     ""images"": ""@{
         def url = model?.picture?.URL
+        if (!url) return null
         import de.hybris.platform.util.Config
-        def prefix = Config.getString('media.' + site + '.http', '')
-        if (prefix && prefix.endsWith('/')) prefix = prefix[0..-2]
-        return url ? [[url: prefix + url]] : null
+        // Return an https URL to avoid security warnings
+        def prefix = Config.getString('media.' + site + '.https', '')
+        if (prefix.endsWith('/') && url.startsWith('/')) prefix = prefix[0..-2]
+        return [[url: prefix + url]]
     }"",
     ""categories"": [
         {

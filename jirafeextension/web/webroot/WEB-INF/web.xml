@@ -98,4 +98,17 @@
         <!-- Map all requests to the DispatcherServlet -->
         <url-pattern>/webservices/*</url-pattern>
     </servlet-mapping>
+
+	<servlet>
+        <servlet-name>ui</servlet-name>
+        <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>ui</servlet-name>
+        <!-- Map all requests to the DispatcherServlet -->
+        <url-pattern>/ui/*</url-pattern>
+    </servlet-mapping>
+
 </web-app> 

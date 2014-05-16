@@ -16,6 +16,7 @@ import de.hybris.platform.util.Config;
 import java.util.List;
 
 import org.jirafe.model.data.JirafeDataModel;
+import org.jirafe.strategy.JirafeDataSyncStrategy.AuthenticationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,8 +48,9 @@ public abstract class JirafeBaseJobPerformable<T extends CronJobModel> extends A
 	 * Abstract method for job to implement for specific functionality.
 	 * 
 	 * @param data
+	 * @throws AuthenticationException
 	 */
-	protected abstract void perform(List<JirafeDataModel> data);
+	protected abstract void perform(List<JirafeDataModel> data) throws AuthenticationException;
 
 	/**
 	 * Returns the query used to get the jirafe data.
@@ -71,12 +73,10 @@ public abstract class JirafeBaseJobPerformable<T extends CronJobModel> extends A
 	@Override
 	public PerformResult perform(final T cronJob)
 	{
-		int start;
 		final int batchSize;
 		List<JirafeDataModel> data;
 		final FlexibleSearchQuery query;
 
-		start = 0;
 		batchSize = Config.getInt("jirafe.cronjob.batchSize", 10);
 
 		query = new FlexibleSearchQuery(getQuery());
@@ -87,24 +87,38 @@ public abstract class JirafeBaseJobPerformable<T extends CronJobModel> extends A
 
 		LOG.debug("Starting {} job, batchSize={}", jobName, batchSize);
 
-		while ((data = getJirafeData(start, batchSize, query)) != null)
+		CronJobResult result = CronJobResult.SUCCESS;
+		try
 		{
-			LOG.debug("Start performing batch, start={}, batchSize={}", start, batchSize);
-			perform(data);
-			LOG.debug("Finished performing batch, start={}, batchSize={}", start, batchSize);
-			start = getStart(start, batchSize);
+			while ((data = getJirafeData(batchSize, query)) != null)
+			{
+				LOG.debug("Start performing batch, batchSize={}", batchSize);
+				perform(data);
+				LOG.debug("Finished performing batch, batchSize={}", batchSize);
+			}
+			flush();
 		}
-		flush();
+		catch (final AuthenticationException e)
+		{
+			result = CronJobResult.FAILURE;
+			LOG.warn("Authentication or communication failure, will retry later", e);
+		}
+		catch (final Exception e)
+		{
+			result = CronJobResult.ERROR;
+			LOG.error("Exception caught, aborting job", e);
+		}
 
-		LOG.debug("Finished {} job.", jobName);
+		LOG.debug("Finished {} job, result = {}.", jobName, result);
 
-		return new PerformResult(CronJobResult.SUCCESS, CronJobStatus.FINISHED);
+		return new PerformResult(result, CronJobStatus.FINISHED);
 	}
 
 	/**
+	 * @throws AuthenticationException
 	 * 
 	 */
-	protected void flush()
+	protected void flush() throws AuthenticationException
 	{
 		// Do nothing by default, override if needed
 	}
@@ -114,11 +128,10 @@ public abstract class JirafeBaseJobPerformable<T extends CronJobModel> extends A
 	 * 
 	 * @return
 	 */
-	protected List<JirafeDataModel> getJirafeData(final int start, final int batchSize, final FlexibleSearchQuery query)
+	protected List<JirafeDataModel> getJirafeData(final int batchSize, final FlexibleSearchQuery query)
 	{
 		final SearchResult<JirafeDataModel> results;
 
-		query.setStart(start);
 		query.setCount(batchSize);
 
 		results = flexibleSearchService.search(query);
@@ -131,18 +144,6 @@ public abstract class JirafeBaseJobPerformable<T extends CronJobModel> extends A
 		{
 			return results.getResult();
 		}
-	}
-
-	/**
-	 * Returns the start of where to return results. Separating it out in a method allows an extending class to add
-	 * custom logic.
-	 * 
-	 * @param start
-	 * @return
-	 */
-	protected int getStart(final int start, final int batchSize)
-	{
-		return start + batchSize;
 	}
 
 	/**

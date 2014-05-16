@@ -92,13 +92,24 @@
     <!-- 
         Sync strategies
      -->
-    <alias name="jirafeHttpDataSyncStrategy" alias="jirafeDataSyncStrategy"/>    
     <bean id="jirafeDataLoggingSyncStrategy" class="org.jirafe.strategy.LoggingSyncStrategy"/>    
+
+    <alias name="jirafeHttpDataSyncStrategy" alias="jirafeDataSyncStrategy"/>
     <bean id="jirafeHttpDataSyncStrategy" class="org.jirafe.strategy.HttpSyncStrategy">
         <property name="jirafeOutboundClient" ref="jirafeOutboundClient"/>
         <property name="modelService" ref="modelService"/>
     </bean>
-        
+    <alias name="jirafeHttpCatalogSyncStrategy" alias="jirafeCatalogSyncStrategy"/>
+    <bean id="jirafeHttpCatalogSyncStrategy" class="org.jirafe.strategy.HttpSyncStrategy">
+        <property name="jirafeOutboundClient" ref="jirafeOutboundClient"/>
+        <property name="modelService" ref="modelService"/>
+    </bean>
+    <alias name="jirafeHttpHistoricalSyncStrategy" alias="jirafeHistoricalSyncStrategy"/>
+    <bean id="jirafeHttpHistoricalSyncStrategy" class="org.jirafe.strategy.HttpSyncStrategy">
+        <property name="jirafeOutboundClient" ref="jirafeOutboundClient"/>
+        <property name="modelService" ref="modelService"/>
+    </bean>
+
     <!-- 
         Cron jobs
      -->
@@ -114,7 +125,7 @@
 
      <bean id="jirafeCatalogSyncJob" class="org.jirafe.cronjob.JirafeCatalogSyncJobPerformable"
          parent="jirafeBaseJob">
-        <property name="jirafeDataSyncStrategy" ref="jirafeDataSyncStrategy"/>
+        <property name="jirafeDataSyncStrategy" ref="jirafeCatalogSyncStrategy"/>
         <property name="flexibleSearchService" ref="flexibleSearchService"/>
      </bean>
 
@@ -127,6 +138,13 @@
         parent="jirafeBaseJob">
     </bean>         
     
+     <bean id="jirafeHistoricalSyncJob" class="org.jirafe.cronjob.JirafeHistoricalSyncJobPerformable"
+        parent="abstractJobPerformable">
+        <property name="flexibleSearchService" ref="flexibleSearchService"/>
+        <property name="modelService" ref="modelService"/>
+        <property name="sessionService" ref="sessionService"/>
+     </bean>
+
     <!-- 
         Webservices clients
      -->

@@ -24,8 +24,8 @@
 	        <value code="NEW"/>
 	        <value code="ACCEPTED"/>
 	        <value code="IN_PROCESS"/>
-	        <value code="REJECTED"/> 
-	        <value code="NOT_AUTHORIZED"/>                   
+	        <value code="REJECTED"/>
+	        <value code="NOT_AUTHORIZED"/>
 	    </enumtype>
 	</enumtypes>
 
@@ -277,8 +277,9 @@
 
 			</attributes>
 			<indexes>
-				<index name="eaIdx" unique="true">
-					<!-- We only want the oldest change record for each batch --> 
+				<index name="ceaIdx" unique="true">
+					<!-- We only want the oldest change record for each batch -->
+					<key attribute="containerPK"/>
 					<key attribute="entryPK"/>
 					<key attribute="attribute"/>
 				</index>
@@ -313,5 +314,33 @@
             autocreate="true">
         </itemtype>
         
+        <itemtype generate="true"
+            code="JirafeHistoricalSyncCronJob"
+            extends="CronJob"
+            jaloclass="org.jirafe.jalo.cronjob.JirafeCatalogSyncCronJob"
+            autocreate="true">
+			<attributes>
+
+				<attribute qualifier="siteName" type="java.lang.String">
+					<description>Site name to process.</description>
+					<persistence type="property" />
+					<modifiers dontOptimize="true" />
+				</attribute>
+
+				<attribute qualifier="types" type="java.lang.String">
+					<description>Comma separated list of item types to process.</description>
+					<persistence type="property" />
+					<modifiers dontOptimize="true" />
+				</attribute>
+
+				<attribute qualifier="pageToken" type="java.lang.String">
+					<description>Page token for pager.</description>
+					<persistence type="property" />
+					<modifiers dontOptimize="true" />
+				</attribute>
+
+			</attributes>
+        </itemtype>
 	</itemtypes>
+
 </items>

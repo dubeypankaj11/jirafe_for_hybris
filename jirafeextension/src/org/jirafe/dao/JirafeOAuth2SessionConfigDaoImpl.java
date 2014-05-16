@@ -37,7 +37,7 @@ public class JirafeOAuth2SessionConfigDaoImpl implements JirafeOAuth2SessionConf
 	public JirafeOAuthConfigModel getSessionConfig()
 	{
 		final StringBuilder builder = new StringBuilder();
-		builder.append("SELECT * FROM {").append(JirafeOAuthConfigModel._TYPECODE).append("} ");
+		builder.append("SELECT {pk} FROM {").append(JirafeOAuthConfigModel._TYPECODE).append("} ");
 
 		final SearchResult<JirafeOAuthConfigModel> result = flexibleSearchService.search(builder.toString());
 

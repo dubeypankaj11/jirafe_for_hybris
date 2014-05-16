@@ -7,9 +7,11 @@ import de.hybris.platform.core.model.ItemModel;
 import de.hybris.platform.servicelayer.model.ModelService;
 import de.hybris.platform.servicelayer.search.FlexibleSearchService;
 import de.hybris.platform.servicelayer.search.SearchResult;
+import de.hybris.platform.servicelayer.search.exceptions.FlexibleSearchException;
 import de.hybris.platform.servicelayer.session.SessionService;
 import de.hybris.platform.servicelayer.type.TypeService;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
@@ -17,12 +19,10 @@ import java.util.Map;
 
 import javax.annotation.Resource;
 
+import org.jirafe.converter.JirafeJsonConverter;
 import org.jirafe.model.data.JirafeMappingDefinitionsModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import groovy.lang.Binding;
-import groovy.lang.GroovyShell;
 
 
 /**
@@ -40,6 +40,9 @@ public class JirafeMappingsDaoImpl implements JirafeMappingsDao
 
 	@Resource(name = "sessionService")
 	private SessionService sessionService;
+
+	@Resource
+	private JirafeJsonConverter jirafeJsonConverter;
 
 	final static private String queryByType = new StringBuilder("SELECT {").append(JirafeMappingDefinitionsModel.PK).append("} ")//
 			.append("FROM {").append(JirafeMappingDefinitionsModel._TYPECODE).append("} ")//
@@ -71,7 +74,12 @@ public class JirafeMappingsDaoImpl implements JirafeMappingsDao
 	@Override
 	public String getMappedType(final ItemModel model)
 	{
-		for (final JirafeMappingDefinitionsModel def : getAllDefinitions())
+		final List<JirafeMappingDefinitionsModel> allDefinitions = getAllDefinitions();
+		if (allDefinitions == null)
+		{
+			return null;
+		}
+		for (final JirafeMappingDefinitionsModel def : allDefinitions)
 		{
 			final String type = def.getType();
 			// if (modelService.create(type).getClass().isInstance(model))
@@ -81,6 +89,18 @@ public class JirafeMappingsDaoImpl implements JirafeMappingsDao
 			}
 		}
 		return null;
+	}
+
+	@Override
+	public List<String> getAllMappedTypes()
+	{
+		final List<JirafeMappingDefinitionsModel> definitions = getAllDefinitions();
+		final List<String> types = new ArrayList(definitions.size());
+		for (final JirafeMappingDefinitionsModel definition : definitions)
+		{
+			types.add(definition.getType());
+		}
+		return types;
 	}
 
 	public JirafeMappingDefinitionsModel getByType(final String type)
@@ -105,14 +125,20 @@ public class JirafeMappingsDaoImpl implements JirafeMappingsDao
 	@Override
 	public List<JirafeMappingDefinitionsModel> getAllDefinitions()
 	{
-		final SearchResult<JirafeMappingDefinitionsModel> result = flexibleSearchService.search(queryGetAll);
-
-		if (result == null || result.getResult() == null || result.getResult().isEmpty())
+		try
 		{
+			final SearchResult<JirafeMappingDefinitionsModel> result = flexibleSearchService.search(queryGetAll);
+			if (result == null || result.getResult() == null || result.getResult().isEmpty())
+			{
+				return null;
+			}
+			return result.getResult();
+		}
+		catch (final FlexibleSearchException e)
+		{
+			LOG.error("Failed to load Jirafe mapping definitions. System not updated?");
 			return null;
 		}
-
-		return result.getResult();
 	}
 
 	/*
@@ -202,29 +228,7 @@ public class JirafeMappingsDaoImpl implements JirafeMappingsDao
 	@Override
 	public boolean filter(final String type, final ItemModel itemModel)
 	{
-		final String filter = loadFilter(type);
-		if (filter == null)
-		{
-			return true;
-		}
-		final Binding binding = new Binding();
-		LOG.debug("Binding model as {}", itemModel);
-		binding.setVariable("model", itemModel);
-		// isRemove flag is deprecated
-		binding.setVariable("isRemove", Boolean.FALSE);
-
-		final GroovyShell shell = new GroovyShell(binding);
-
-		LOG.debug("About to eval <{}>", filter);
-		try
-		{
-			return Boolean.parseBoolean(shell.evaluate(filter).toString());
-		}
-		catch (final Exception e)
-		{
-			LOG.error("Failed to apply filter due to {}", e.getMessage(), e);
-			return false;
-		}
+		return jirafeJsonConverter.filter(type, itemModel);
 	}
 
 	/*

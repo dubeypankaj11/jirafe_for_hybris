@@ -2,7 +2,9 @@
     "__sites__": "catalogVersion.catalog.baseStores@{
         def sites = []
         for (def store in baseStores) {
-            sites.add(store.uid)
+            for (def cmsSite: store.cmsSites) {
+                sites.add(cmsSite.uid)
+            }
         }
         return sites
     }",
