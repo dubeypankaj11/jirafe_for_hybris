@@ -3,10 +3,8 @@
  */
 package org.jirafe.interceptor;
 
-import de.hybris.platform.core.PK;
 import de.hybris.platform.core.Registry;
 import de.hybris.platform.core.model.ItemModel;
-import de.hybris.platform.core.model.order.AbstractOrderEntryModel;
 import de.hybris.platform.core.model.user.EmployeeModel;
 import de.hybris.platform.jalo.Item;
 import de.hybris.platform.jalo.JaloObjectNoLongerValidException;
@@ -28,7 +26,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.jirafe.converter.JirafeJsonConverter;
-import org.jirafe.dao.JirafeChangeTrackerDao;
 import org.jirafe.dao.JirafeMappingsDao;
 import org.jirafe.dto.JirafeDataDto;
 import org.jirafe.strategy.JirafeDataPersistStrategy;
@@ -69,17 +66,15 @@ public class JirafeDefaultInterceptor implements ValidateInterceptor, RemoveInte
 	}
 
 	/**
-	 * Handle dirty attribute records
-	 * 
-	 * For AbstractOrderEntryModel (cart and order line items), write out change records. If debug is enabled, format
-	 * change records for log.
-	 * 
-	 * Finally, return true if there are no changes.
+	 * Check if the intercept included changes
 	 * 
 	 * @param itemModel
 	 * @param isRemove
 	 * @param ctx
-	 * @return
+	 * @return true if there are no changes
+	 * 
+	 *         If debug is enabled, log the changed attributes.
+	 * 
 	 */
 	protected boolean noChanges(final ItemModel itemModel, final boolean isRemove, final InterceptorContext ctx)
 	{
@@ -91,7 +86,7 @@ public class JirafeDefaultInterceptor implements ValidateInterceptor, RemoveInte
 			return true;
 		}
 
-		if (!(itemModel instanceof AbstractOrderEntryModel) && !LOG.isDebugEnabled())
+		if (!LOG.isDebugEnabled())
 		{
 			return false;
 		}
@@ -114,6 +109,7 @@ public class JirafeDefaultInterceptor implements ValidateInterceptor, RemoveInte
 			source = (Item) modelService.getSource(itemModel);
 			if (isRemove)
 			{
+				// All the source attributes are changing, in a sense
 				try
 				{
 					dirtyAttributes = source.getAllAttributes();
@@ -129,31 +125,6 @@ public class JirafeDefaultInterceptor implements ValidateInterceptor, RemoveInte
 			source = null;
 		}
 
-		// Use the product pk rather than the entry pk since the entry pk won't be assigned
-		// until after the entry is persisted the first time.
-		PK productPK = null;
-		JirafeChangeTrackerDao jirafeChangeTrackerDao = null;
-		if (itemModel instanceof AbstractOrderEntryModel)
-		{
-			try
-			{
-				final AbstractOrderEntryModel abstractOrderEntryModel = (AbstractOrderEntryModel) itemModel;
-				productPK = abstractOrderEntryModel.getProduct().getPk();
-				final PK containerPK = abstractOrderEntryModel.getOrder().getPk();
-				if (productPK != null && containerPK != null)
-				{
-					jirafeChangeTrackerDao = new JirafeChangeTrackerDao(containerPK);
-					// We don't get modifiedtime so force it here
-					jirafeChangeTrackerDao
-							.save(productPK, "modifiedtime", source == null ? null : source.getAttribute("modifiedtime"));
-				}
-			}
-			catch (final Exception e)
-			{
-				// Continue with change debug logging in any case
-				LOG.debug("", e);
-			}
-		}
 		for (final String att : dirtyAttributes.keySet())
 		{
 			// Empirically, sometimes the value is in
@@ -188,20 +159,13 @@ public class JirafeDefaultInterceptor implements ValidateInterceptor, RemoveInte
 					orig = null;
 				}
 			}
-			if (LOG.isDebugEnabled())
+			try
 			{
-				try
-				{
-					LOG.debug(String.format("dirty attribute: %s %s->%s", att, orig, modelService.getAttributeValue(itemModel, att)));
-				}
-				catch (final AttributeNotSupportedException e)
-				{
-					// Just skip it
-				}
+				LOG.debug(String.format("dirty attribute: %s %s->%s", att, orig, modelService.getAttributeValue(itemModel, att)));
 			}
-			if (jirafeChangeTrackerDao != null)
+			catch (final AttributeNotSupportedException e)
 			{
-				jirafeChangeTrackerDao.save(productPK, att.toLowerCase(), orig);
+				// Just skip it
 			}
 		}
 		return false;

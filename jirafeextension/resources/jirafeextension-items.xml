@@ -249,43 +249,6 @@
 			</attributes>
 		</itemtype>
 
-		<itemtype generate="true" code="JirafeChangeTracker"
-			extends="GenericItem" jaloclass="org.jirafe.jalo.data.JirafeChangeTracker"
-			autocreate="true">
-			<deployment table="JirafeChangeTracker" typecode="31347" />
-			<attributes>
-
-				<attribute qualifier="containerPK" type="de.hybris.platform.core.PK">
-					<description>PK of the container.</description>
-					<persistence type="property" />
-				</attribute>
-
-				<attribute qualifier="entryPK" type="de.hybris.platform.core.PK">
-					<description>PK of the entry.</description>
-					<persistence type="property" />
-				</attribute>
-
-				<attribute qualifier="attribute" type="java.lang.String">
-					<description>Name of the attribute.</description>
-					<persistence type="property" />
-				</attribute>
-	
-				<attribute qualifier="value" type="java.lang.Object">
-					<description>Value of the attribute.</description>
-					<persistence type="property" />
-				</attribute>
-
-			</attributes>
-			<indexes>
-				<index name="ceaIdx" unique="true">
-					<!-- We only want the oldest change record for each batch -->
-					<key attribute="containerPK"/>
-					<key attribute="entryPK"/>
-					<key attribute="attribute"/>
-				</index>
-			</indexes>
-		</itemtype>
-
         <itemtype generate="true"
             code="JirafeDataSyncCronJob"
             extends="CronJob"

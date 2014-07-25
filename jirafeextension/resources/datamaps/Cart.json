@@ -42,8 +42,5 @@
     "currency": "currency.isocode",
     "items": "entries@{
         return abstractOrderEntryItems(entries)
-    }",
-    "previous_items": "@{
-        return abstractOrderEntryPreviousItems(model)
     }"
 }

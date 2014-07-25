@@ -15,12 +15,13 @@ import de.hybris.platform.hmc.webchips.DisplayState;
 import de.hybris.platform.hmc.webchips.Window;
 import de.hybris.platform.hmc.webchips.event.WindowOpenEvent;
 import de.hybris.platform.jdbcwrapper.HybrisDataSource;
-import de.hybris.platform.print.hmc.ZipFileDownloadWindow;
+//import de.hybris.platform.print.hmc.ZipFileDownloadWindow;
 import de.hybris.platform.servicelayer.search.FlexibleSearchQuery;
 import de.hybris.platform.servicelayer.search.FlexibleSearchService;
 import de.hybris.platform.util.Config;
 
 import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Constructor;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
@@ -52,7 +53,7 @@ public class StatusDisplayChip extends DisplayChip
 	private static final Logger LOG = Logger.getLogger(StatusDisplayChip.class.getName());
 
 	public final String REFRESH = "REFRESH";
-	public final String EXPORT = "EXPORT";
+	public String EXPORT = "EXPORT";
 	public final String TEST_CONNECTION = "TEST_CONNECTION";
 
 	private final ApplicationContext applicationContext = Registry.getApplicationContext();
@@ -66,6 +67,23 @@ public class StatusDisplayChip extends DisplayChip
 			.getBean("jirafeHeartBeatClient");
 
 	private final DisplayState displayState;
+
+	private Class<?> zipFileDownloadWindowClass;
+	private Constructor<?> zipFileDownloadWindowCtor;
+	{
+		try
+		{
+			zipFileDownloadWindowClass = Class.forName("de.hybris.platform.print.hmc.ZipFileDownloadWindow");
+			zipFileDownloadWindowCtor = zipFileDownloadWindowClass.getConstructor(DisplayState.class, String.class, byte[].class,
+					String.class, String.class);
+		}
+		catch (final Exception e)
+		{
+			LOG.info("de.hybris.platform.hmc.webchips.ZipFileDownloadWindow not available so export button will be disabled");
+			LOG.debug("", e);
+			EXPORT = null;
+		}
+	}
 
 	/**
 	 * @param displayState
@@ -301,12 +319,13 @@ public class StatusDisplayChip extends DisplayChip
 			{
 				final byte[] content = getConfigurationZip();
 				final String now = formatter.format(new Date());
-				final Window window = new ZipFileDownloadWindow(displayState, "Export Configuration", content, //
-						"Jirafe-" + getConnectionConfig().getSiteIds().iterator().next() + "-" + now + ".zip", "application/zip");
-				final WindowOpenEvent woe = new WindowOpenEvent(window, ConfigConstants.getInstance().WINDOW_ORGANIZER);
+				final Window zipFileDownloadWindow = (Window) zipFileDownloadWindowCtor.newInstance(new Object[]
+				{ displayState, "Export Configuration", content,
+						"Jirafe-" + getConnectionConfig().getSiteIds().iterator().next() + "-" + now + ".zip", "application/zip" });
+				final WindowOpenEvent woe = new WindowOpenEvent(zipFileDownloadWindow, ConfigConstants.getInstance().WINDOW_ORGANIZER);
 				woe.setHeight(25);//it's percentage not pixels !
 				woe.setWidth(25);
-				window.open(woe);
+				zipFileDownloadWindow.open(woe);
 			}
 			catch (final Exception e)
 			{

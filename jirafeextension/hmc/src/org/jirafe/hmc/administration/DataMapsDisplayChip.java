@@ -16,6 +16,7 @@ import de.hybris.platform.jalo.type.TypeManager;
 import de.hybris.platform.servicelayer.model.ModelService;
 import de.hybris.platform.servicelayer.search.FlexibleSearchQuery;
 import de.hybris.platform.servicelayer.search.FlexibleSearchService;
+import de.hybris.platform.site.BaseSiteService;
 import de.hybris.platform.util.WebSessionFunctions;
 
 import java.util.HashMap;
@@ -42,6 +43,7 @@ public class DataMapsDisplayChip extends DisplayChip implements ClipChip, ItemAc
 {
 	private static final Logger LOG = Logger.getLogger(DataMapsDisplayChip.class.getName());
 
+	private final BaseSiteService baseSiteService = (BaseSiteService) Registry.getApplicationContext().getBean("baseSiteService");
 	private final ModelService modelService = (ModelService) Registry.getApplicationContext().getBean("modelService");
 	private final FlexibleSearchService flexibleSearchService = (FlexibleSearchService) Registry.getApplicationContext().getBean(
 			"flexibleSearchService");
@@ -145,7 +147,7 @@ public class DataMapsDisplayChip extends DisplayChip implements ClipChip, ItemAc
 	private void pkPicker()
 	{
 		final HashMap map = new HashMap();
-		map.put("site", siteName);
+		map.put("site", modelService.getSource(baseSiteService.getBaseSiteForUID(siteName)));
 		HMCHelper.openItemSearch(TypeManager.getInstance().getComposedType(type), this, null, false, map, null);
 	}
 

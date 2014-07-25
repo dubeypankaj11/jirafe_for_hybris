@@ -42,9 +42,6 @@
     "items": "entries@{
         return abstractOrderEntryItems(entries)
     }",
-    "previous_items": "@{
-        return abstractOrderEntryPreviousItems(model)
-    }",
     "delivery_address": "deliveryAddress@{
         if (!deliveryAddress) return null
         return jirafeModelToMapConverter.toMap(deliveryAddress, 'Address', null)

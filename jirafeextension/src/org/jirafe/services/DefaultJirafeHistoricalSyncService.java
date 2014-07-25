@@ -3,6 +3,7 @@
  */
 package org.jirafe.services;
 
+import de.hybris.platform.core.Registry;
 import de.hybris.platform.core.model.user.UserModel;
 import de.hybris.platform.cronjob.enums.CronJobStatus;
 import de.hybris.platform.servicelayer.cronjob.CronJobService;
@@ -38,8 +39,7 @@ public class DefaultJirafeHistoricalSyncService implements JirafeHistoricalSyncS
 	ModelService modelService;
 	@Resource
 	UserService userService;
-	@Resource
-	CronJobService cronJobService;
+	CronJobService cronJobService = null;
 	@Resource
 	FlexibleSearchService flexibleSearchService;
 	@Resource
@@ -118,7 +118,7 @@ public class DefaultJirafeHistoricalSyncService implements JirafeHistoricalSyncS
 				}
 				if (error == null)
 				{
-					cronJobService.performCronJob(jirafeHistoricalSyncCronJobModel);
+					getCronJobService().performCronJob(jirafeHistoricalSyncCronJobModel);
 					message = String.format("Historical sync started for site '%s', types='%s'", siteName,
 							jirafeHistoricalSyncCronJobModel.getTypes());
 				}
@@ -135,7 +135,7 @@ public class DefaultJirafeHistoricalSyncService implements JirafeHistoricalSyncS
 				}
 				else
 				{
-					cronJobService.requestAbortCronJob(jirafeHistoricalSyncCronJobModel);
+					getCronJobService().requestAbortCronJob(jirafeHistoricalSyncCronJobModel);
 					message = String.format("Historical sync terminate request submitted for site '%s'", siteName);
 				}
 			}
@@ -164,6 +164,15 @@ public class DefaultJirafeHistoricalSyncService implements JirafeHistoricalSyncS
 			map.put("error", error);
 		}
 		return map;
+	}
+
+	private CronJobService getCronJobService()
+	{
+		if (cronJobService == null)
+		{
+			cronJobService = (CronJobService) Registry.getApplicationContext().getBean("cronJobService");
+		}
+		return cronJobService;
 	}
 
 	/*
