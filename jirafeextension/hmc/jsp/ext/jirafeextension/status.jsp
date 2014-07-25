@@ -14,9 +14,11 @@
 			<td><div class="xp-button">
 				<a href="#" onclick="setEvent('<%= displayChip.getEventID(displayChip.REFRESH) %>');setScrollAndSubmit();return false;"><span class="label">Refresh</span></a>
 			</div></td>
+		<% if (displayChip.EXPORT != null) { %>
 			<td><div class="xp-button">
 				<a href="#" onclick="setEvent('<%= displayChip.getEventID(displayChip.EXPORT) %>');setScrollAndSubmit();return false;"><span class="label">Export Configuration...</span></a>
 			</div></td>
+		<% } %>
 		</tr>
 	</table>
 	<table>

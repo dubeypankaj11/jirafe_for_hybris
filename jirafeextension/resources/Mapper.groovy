@@ -1,6 +1,5 @@
 import org.slf4j.LoggerFactory
 import de.hybris.platform.core.PK
-import org.jirafe.dao.JirafeChangeTrackerDao
 import de.hybris.platform.core.model.ItemModel
 
 def getValue(ItemModel mmodel, Object expr) {
@@ -67,9 +66,4 @@ def toMap(ItemModel mmodel, Map map, Iterable keys=map.keySet()) {
 def toMap (ItemModel mmodel, String type, Iterable keys=null) {
     Map map = jirafeJsonConverter.getDefinitionMap(this, type)
     return toMap(mmodel, map, keys ?: map.keySet())
-}
-
-public Map<PK, Map<String, Object>> changedItems(final ItemModel mmodel)
-{
-    return new JirafeChangeTrackerDao(mmodel.getPk()).load()
 }
