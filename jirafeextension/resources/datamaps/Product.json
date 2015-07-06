@@ -68,18 +68,20 @@
         import de.hybris.platform.util.Config
         // Return an https URL to avoid security warnings
         def prefix = Config.getString('media.' + site + '.https', '')
-        if (prefix.endsWith('/') && url.startsWith('/')) prefix = prefix[0..-2]
-        return [[url: prefix + url]]
+        return [[url: new URI(prefix).resolve(url)]]
     }",
-    "categories": [
-        {
-            "_path": "supercategories"
-        },
-        {
-            "id": "pk@{return pk.toString()}",
-            "name": "name"
+    "categories": "supercategories@{
+        def ret = new HashSet()
+        for (def supercategory in supercategories) {
+            if (supercategory.name) {
+                ret.add([
+                    id: supercategory.pk.toString(),
+                    name: supercategory.name,
+                ])
+            }
         }
-    ],
+        return ret ?: null
+    }",
     "attributes": "@{
         if (!model.hasProperty('baseProduct')) return null
         def ret = []

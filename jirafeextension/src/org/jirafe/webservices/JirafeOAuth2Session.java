@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package org.jirafe.webservices;
 
@@ -17,6 +17,7 @@ import org.apache.commons.httpclient.HttpException;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
+import org.apache.commons.httpclient.ProxyHost;
 import org.apache.commons.httpclient.URI;
 import org.apache.commons.httpclient.URIException;
 import org.apache.commons.httpclient.methods.GetMethod;
@@ -35,7 +36,7 @@ import com.google.gson.JsonParseException;
 
 /**
  * @author alex
- * 
+ *
  */
 @Component("jirafeOAuth2Session")
 public class JirafeOAuth2Session
@@ -54,6 +55,11 @@ public class JirafeOAuth2Session
 	{
 		accessToken = connectionConfig.getAccessToken();
 		client = new HttpClient(new MultiThreadedHttpConnectionManager());
+		if (StringUtils.isNotBlank(connectionConfig.getProxyHost()))
+		{
+			final ProxyHost proxy = new ProxyHost(connectionConfig.getProxyHost(), connectionConfig.getProxyPort());
+			client.getHostConfiguration().setProxyHost(proxy);
+		}
 		client.getHttpConnectionManager().getParams().setConnectionTimeout(connectionConfig.getTimeOut());
 	}
 

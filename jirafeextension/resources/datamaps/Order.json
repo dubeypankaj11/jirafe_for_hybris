@@ -14,7 +14,6 @@
         orderStatus = [
             CANCELLED: 'cancelled',
             PAYMENT_CAPTURED: 'accepted',
-            COMPLETED: 'accepted',
         ][status?.code] ?: null
         return orderStatus
     }",

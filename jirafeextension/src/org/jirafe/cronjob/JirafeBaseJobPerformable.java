@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package org.jirafe.cronjob;
 
@@ -23,9 +23,9 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Cron job that reads data from the jirafe data type and uses a {@code JirafeDataSyncStrategy} to sync data.
- * 
+ *
  * @author Larry Ramponi
- * 
+ *
  */
 public abstract class JirafeBaseJobPerformable<T extends CronJobModel> extends AbstractJobPerformable<T>
 {
@@ -36,7 +36,7 @@ public abstract class JirafeBaseJobPerformable<T extends CronJobModel> extends A
 
 	/**
 	 * Constructor that sets the job name.
-	 * 
+	 *
 	 * @param jobName
 	 */
 	protected JirafeBaseJobPerformable(final String jobName)
@@ -46,7 +46,7 @@ public abstract class JirafeBaseJobPerformable<T extends CronJobModel> extends A
 
 	/**
 	 * Abstract method for job to implement for specific functionality.
-	 * 
+	 *
 	 * @param data
 	 * @throws AuthenticationException
 	 */
@@ -54,14 +54,14 @@ public abstract class JirafeBaseJobPerformable<T extends CronJobModel> extends A
 
 	/**
 	 * Returns the query used to get the jirafe data.
-	 * 
+	 *
 	 * @return
 	 */
 	protected abstract String getQuery();
 
 	/**
 	 * Method that allows concrete class to set query params before it is executed.
-	 * 
+	 *
 	 * @param query
 	 */
 	protected abstract void setQueryParams(FlexibleSearchQuery query);
@@ -71,7 +71,7 @@ public abstract class JirafeBaseJobPerformable<T extends CronJobModel> extends A
 	 * {@code perform} method of this class.
 	 */
 	@Override
-	public PerformResult perform(final T cronJob)
+	public synchronized PerformResult perform(final T cronJob)
 	{
 		final int batchSize;
 		List<JirafeDataModel> data;
@@ -81,7 +81,7 @@ public abstract class JirafeBaseJobPerformable<T extends CronJobModel> extends A
 
 		query = new FlexibleSearchQuery(getQuery());
 
-		// Allow extending class to set params.  
+		// Allow extending class to set params.
 		// Do this here so its only set one time.
 		setQueryParams(query);
 
@@ -116,7 +116,7 @@ public abstract class JirafeBaseJobPerformable<T extends CronJobModel> extends A
 
 	/**
 	 * @throws AuthenticationException
-	 * 
+	 *
 	 */
 	protected void flush() throws AuthenticationException
 	{
@@ -125,7 +125,7 @@ public abstract class JirafeBaseJobPerformable<T extends CronJobModel> extends A
 
 	/**
 	 * Returns a list of jirafe data to be processed.
-	 * 
+	 *
 	 * @return
 	 */
 	protected List<JirafeDataModel> getJirafeData(final int batchSize, final FlexibleSearchQuery query)
@@ -147,7 +147,7 @@ public abstract class JirafeBaseJobPerformable<T extends CronJobModel> extends A
 	}
 
 	/**
-	 * 
+	 *
 	 */
 	@Override
 	public void setFlexibleSearchService(final FlexibleSearchService flexibleSearchService)

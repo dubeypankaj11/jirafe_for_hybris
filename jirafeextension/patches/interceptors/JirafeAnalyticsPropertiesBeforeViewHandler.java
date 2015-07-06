@@ -15,7 +15,9 @@ package org.jirafe.interceptors;
 
 import de.hybris.platform.cms2.exceptions.CMSItemNotFoundException;
 import de.hybris.platform.cms2.servicelayer.services.CMSSiteService;
+import de.hybris.platform.site.BaseSiteService;
 import de.hybris.platform.util.Config;
+import de.hybris.platform.util.WebSessionFunctions;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -36,6 +38,8 @@ public class JirafeAnalyticsPropertiesBeforeViewHandler implements JirafeBeforeV
 	private final static Logger LOG = LoggerFactory.getLogger(JirafeAnalyticsPropertiesBeforeViewHandler.class);
 
 	@Resource
+	BaseSiteService baseSiteService;
+	@Resource
 	CMSSiteService cmsSiteService;
 	@Resource
 	private OAuth2ConnectionConfig connectionConfig;
@@ -43,45 +47,13 @@ public class JirafeAnalyticsPropertiesBeforeViewHandler implements JirafeBeforeV
 	@Override
 	public void beforeView(final HttpServletRequest request, final HttpServletResponse response, final ModelAndView modelAndView)
 	{
-		final String siteName = getSiteName(request);
+		final String siteName = baseSiteService.getCurrentBaseSite().getUid();
+		final String siteId = connectionConfig.getSiteId(siteName);
 
-		if (siteName != null)
+		if (StringUtils.isNotEmpty(siteId))
 		{
-			modelAndView.addObject("jirafe2SiteId", connectionConfig.getSiteId(siteName));
+			modelAndView.addObject("jirafe2SiteId", siteId);
 			modelAndView.addObject("jirafe2ApiUrl", Config.getString("jirafe.api.url", null));
 		}
-	}
-
-	protected String getSiteName(final HttpServletRequest request)
-	{
-		String siteName = (String) request.getAttribute("org.jirafe.siteName");
-
-		if (StringUtils.isEmpty(siteName))
-		{
-			final String queryString = request.getQueryString();
-			final StringBuffer fullURL = request.getRequestURL();
-			if (queryString != null)
-			{
-				fullURL.append('?').append(queryString);
-			}
-			try
-			{
-				siteName = cmsSiteService.getSiteForURL(new URL(fullURL.toString())).getUid();
-				request.getSession().setAttribute("org.jirafe.siteName", siteName);
-			}
-			catch (CMSItemNotFoundException e)
-			{
-				// Without a site id, we don't need to hear about it
-				LOG.debug("No site id match for request {}, ignoring.", fullURL);
-				siteName = null;
-			}
-			catch (MalformedURLException e)
-			{
-				// Without a site id, we don't need to hear about it
-				LOG.debug("No site id match for request {}, ignoring.", fullURL);
-				siteName = null;
-			}
-		}
-		return siteName;
 	}
 }

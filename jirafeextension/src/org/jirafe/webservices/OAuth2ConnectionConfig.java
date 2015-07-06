@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package org.jirafe.webservices;
 
@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * @author alex
- * 
+ *
  */
 @Component("connectionConfig")
 public class OAuth2ConnectionConfig
@@ -38,6 +38,9 @@ public class OAuth2ConnectionConfig
 	private String authServerAuthorize;
 	private String authServerAccessToken;
 	private String[] blacklistedSiteIds;
+
+	private String proxyHost;
+	private int proxyPort;
 
 	private String siteId;
 	private String[] siteNames;
@@ -67,6 +70,17 @@ public class OAuth2ConnectionConfig
 		authServerAccessToken = Config.getString("jirafe.outboundConnectionConfig.auth_server_access_token", "");
 		blacklistedSiteIds = StringUtils.split(Config.getString("jirafe.site.ids.blacklist", ""), ",");
 
+		proxyHost = Config.getString("jirafe.outboundConnectionConfig.proxy_host", null);
+		try
+		{
+			proxyPort = Config.getInt("jirafe.outboundConnectionConfig.proxy_port", -1);
+		}
+		catch (final NumberFormatException e)
+		{
+			log.error("jirafe.outboundConnectionConfig.proxy_port must be a port number, ignoring {}",
+					Config.getString("jirafe.outboundConnectionConfig.proxy_port", ""));
+			proxyPort = -1;
+		}
 		siteId = null;
 		siteNames = null;
 		siteIds = null;
@@ -155,6 +169,16 @@ public class OAuth2ConnectionConfig
 	public String getAccessToken()
 	{
 		return accessToken;
+	}
+
+	public String getProxyHost()
+	{
+		return proxyHost;
+	}
+
+	public int getProxyPort()
+	{
+		return proxyPort;
 	}
 
 	/**

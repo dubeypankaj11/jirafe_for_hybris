@@ -1,0 +1,22 @@
+{
+    "__sites__": "product.catalogVersion.catalog.baseStores@{
+        def sites = []
+        for (def store in baseStores) {
+            for (def cmsSite: store.cmsSites) {
+                sites.add(cmsSite.uid)
+            }
+        }
+        return sites
+    }",
+    "product_code": "productCode",
+    "inventory_level": "@{
+        import de.hybris.platform.core.Registry
+        def stockService =
+            Registry.getApplicationContext().getBean('stockService')
+        return stockService.getTotalStockLevelAmount(model.product)
+    }",
+    "timestamp": "@{
+        createDate = dateFormat.format(model?.creationtime ?: model?.modifiedtime ?: new Date())
+        return createDate
+    }"
+}

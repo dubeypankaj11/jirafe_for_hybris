@@ -78,6 +78,7 @@
 <project name="jirafeextension_buildcallbacks" >
 
 	<property name="tagfiles" value="web/webroot/WEB-INF/tags/shared/analytics/jirafe.tag,web/webroot/WEB-INF/tags/analytics/jirafe.tag" />
+	<property name="extensioninfo" value="extensioninfo.xml" />
 	<property name="configxml" value="web/webroot/WEB-INF/web-jirafe-config.xml" />
 	<property name="webxml" value="web/webroot/WEB-INF/web.xml" />
 	<property name="interceptors" value="web/src/org/jirafe/interceptors/" />
@@ -133,6 +134,15 @@
 									<echo level="info" message="Patch jirafeextension files for extension @{extname}..."/>
 									<if>
 										<not>
+											<available file="${ext.@{extname}.path}/${extensioninfo}-dist" />
+										</not>
+										<then>
+											<copy file="${ext.@{extname}.path}/${extensioninfo}"
+												  tofile="${ext.@{extname}.path}/${extensioninfo}-dist" preservelastmodified="true" />
+										</then>
+									</if>
+									<if>
+										<not>
 											<available file="${ext.@{extname}.path}/${webxml}-dist" />
 										</not>
 										<then>
@@ -152,15 +162,39 @@
 									<replace file="${ext.@{extname}.path}/${webxml}" token="&gt;WEB-INF/config/web-application-config.xml&lt;" value="&gt;WEB-INF/config/web-application-config.xml WEB-INF/web-jirafe-config.xml&lt;" />
 									<copy file="${ext.jirafeextension.path}/patches/tags/jirafe.tag" tofile="${ext.@{extname}.path}/@{tagfile}" overwrite="true" verbose="true" />
 									<copy file="${ext.jirafeextension.path}/patches/web-jirafe-config.xml" tofile="${ext.@{extname}.path}/${configxml}" overwrite="true" verbose="true" />
-									<copy todir="${ext.@{extname}.path}/${interceptors}" overwrite="true" verbose="true">
-										<fileset dir="${ext.jirafeextension.path}/patches/interceptors" />
-									</copy>
+									<if>
+										<available file="${ext.@{extname}.path}/web/src" />
+										<then>
+											<copy todir="${ext.@{extname}.path}/${interceptors}" overwrite="true" verbose="true">
+												<fileset dir="${ext.jirafeextension.path}/patches/interceptors" />
+											</copy>
+										</then>
+									</if>
+									<condition property="jirafeextension.first.build">
+										<not>
+											<resourcecontains resource="${ext.@{extname}.path}/${extensioninfo}" substring="jirafeextension" />
+										</not>
+									</condition>
+									<if>
+										<istrue value="${jirafeextension.first.build}" />
+										<then>
+											<replace file="${ext.@{extname}.path}/${extensioninfo}"
+												token="&lt;requires-extension name=&quot;btg&quot;"
+												value="&lt;requires-extension name=&quot;btg&quot;/&gt;&lt;requires-extension name=&quot;jirafeextension&quot;" />
+										</then>
+									</if>
 								</then>
 							</if>
 						</sequential>
 					</for>
 				</do>
 			</foreachext>
+			<if>
+				<istrue value="${jirafeextension.first.build}" />
+				<then>
+					<fail message="!!! The Jirafe extension has modified your extensioninfo files, please run 'ant all' again without a 'clean' !!!" />
+				</then>
+			</if>
 		</sequential>
 	</macrodef>
 
@@ -173,6 +207,9 @@
 							<if>
 								<available file="${ext.@{extname}.path}/@{tagfile}" />
 								<then>
+									<replace file="${ext.@{extname}.path}/${extensioninfo}"
+										token="&lt;requires-extension name=&quot;btg&quot;/&gt;&lt;requires-extension name=&quot;jirafeextension&quot;/&gt;"
+										value="&lt;requires-extension name=&quot;btg&quot;/&gt;" />
 									<replace file="${ext.@{extname}.path}/${webxml}" token="&gt;WEB-INF/config/web-application-config.xml WEB-INF/web-jirafe-config.xml&lt;" value="&gt;WEB-INF/config/web-application-config.xml&lt;" />
 									<move file="${ext.@{extname}.path}/@{tagfile}-dist" tofile="${ext.@{extname}.path}/@{tagfile}" failonerror="false" />
 									<delete file="${ext.@{extname}.path}/${configxml}" failonerror="false" />

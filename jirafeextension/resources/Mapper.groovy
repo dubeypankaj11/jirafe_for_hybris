@@ -1,20 +1,30 @@
 import org.slf4j.LoggerFactory
 import de.hybris.platform.core.PK
 import de.hybris.platform.core.model.ItemModel
+import org.jirafe.converter.JirafeJsonConverter
 
 def getValue(ItemModel mmodel, Object expr) {
     def saveModel = model
     try {
-        model = mmodel;
+        model = mmodel
         return expr()
     } finally {
-        model = saveModel;
+        model = saveModel
     }
 }
 
 def toMap(ItemModel mmodel, Map map, Iterable keys=map.keySet()) {
-    def log = LoggerFactory.getLogger(getClass())
+    def log = LoggerFactory.getLogger(org.jirafe.converter.JirafeJsonConverter.class)
 
+	log.debug('toMap: model = {}, keys = {}', mmodel, keys)
+	def ret = _toMap(mmodel, map, keys)
+	log.debug('toMap: returning {}', ret)
+	return ret
+}
+
+def _toMap(ItemModel mmodel, Map map, Iterable keys=map.keySet()) {
+    def log = LoggerFactory.getLogger(org.jirafe.converter.JirafeJsonConverter.class)
+    
     def saveModel = model
     def ret = [:]
 

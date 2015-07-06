@@ -16,5 +16,10 @@ quote(){
 for i in *.json
 do
         r=${i%.json}
-        echo ";$r;$(quote $i);$(quote $r-filter.groovy);$(echo "$r"|tr '[:upper:]' '[:lower:]')" >>../$impex
+        e=$(echo "$r"|tr '[:upper:]' '[:lower:]')
+        case $r in *-*)
+                e=${r#*-}
+                r=${r%-*}
+        ;;esac
+        echo ";$r;$(quote $i);$(quote $r-filter.groovy);$e" >>../$impex
 done

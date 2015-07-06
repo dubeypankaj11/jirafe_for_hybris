@@ -18,6 +18,8 @@ import java.util.List;
 import javax.annotation.Resource;
 
 import org.apache.commons.lang.StringUtils;
+import org.jirafe.converter.JirafeJsonConverter;
+import org.jirafe.dao.JirafeMappingsDao;
 import org.jirafe.dao.JirafePagerDao;
 import org.jirafe.dao.JirafePagerDao.BadArgument;
 import org.jirafe.dto.JirafeTempDataModelFactory;
@@ -32,7 +34,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * @author dbrand
- * 
+ *
  */
 public class JirafeHistoricalSyncJobPerformable extends AbstractJobPerformable<JirafeHistoricalSyncCronJobModel>
 {
@@ -46,6 +48,10 @@ public class JirafeHistoricalSyncJobPerformable extends AbstractJobPerformable<J
 	protected JirafeTempDataModelFactory jirafeTempDataModelFactory;
 	@Resource
 	JirafeHistoricalStatusClient jirafeHistoricalStatusClient;
+	@Resource
+	private JirafeMappingsDao jirafeMappingsDao;
+	@Resource
+	private JirafeJsonConverter jirafeJsonConverter;
 
 	protected int pageLimit = Config.getInt("jirafe.cronjob.batchSize", 100);
 
@@ -57,7 +63,7 @@ public class JirafeHistoricalSyncJobPerformable extends AbstractJobPerformable<J
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see
 	 * de.hybris.platform.servicelayer.cronjob.AbstractJobPerformable#perform(de.hybris.platform.cronjob.model.CronJobModel
 	 * )
@@ -110,9 +116,20 @@ public class JirafeHistoricalSyncJobPerformable extends AbstractJobPerformable<J
 				{
 					for (final ItemModel itemModel : (List<ItemModel>) results.getResult())
 					{
+						lastResult = itemModel;
+						if (!jirafeMappingsDao.filter(type, itemModel))
+						{
+							log.debug("Ignoring {} (filtered)", itemModel);
+							continue;
+						}
+						if (StringUtils.indexOfAny(siteName, jirafeJsonConverter.getSites(itemModel)) < 0)
+						{
+							log.debug("Skipping {} (wrong site)", itemModel);
+							continue;
+						}
+						log.debug("Syncing {}", itemModel);
 						final JirafeDataModel jirafeDataModel = jirafeTempDataModelFactory.fromItemModel(type, itemModel, siteName);
 						jirafeHistoricalSyncStrategy.sync(Collections.singletonList(jirafeDataModel));
-						lastResult = itemModel;
 					}
 					jirafeHistoricalSyncStrategy.flush();
 				}

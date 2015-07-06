@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package org.jirafe.services;
 
@@ -28,7 +28,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * @author dbrand
- * 
+ *
  */
 @Component("jirafeDataEndpointService")
 public class DefaultJirafeDataEndpointService implements JirafeDataEndpointService
@@ -161,6 +161,7 @@ public class DefaultJirafeDataEndpointService implements JirafeDataEndpointServi
 		{
 			for (final ItemModel result : searchResult.getResult())
 			{
+				lastResult = result;
 				if (!StringUtils.isEmpty(strMap))
 				{
 					final JirafeDataDto jirafeDataDto = new JirafeDataDto(type, result, connectionConfig.getSiteNameFromId(siteId));
@@ -180,7 +181,6 @@ public class DefaultJirafeDataEndpointService implements JirafeDataEndpointServi
 						}
 					}
 				}
-				lastResult = result;
 			}
 			data.put("success", true);
 			data.put("response", response);

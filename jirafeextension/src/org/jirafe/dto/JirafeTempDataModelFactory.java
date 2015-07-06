@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * @author dbrand
- * 
+ *
  */
 @Component
 public class JirafeTempDataModelFactory
@@ -43,6 +43,7 @@ public class JirafeTempDataModelFactory
 			final JirafeTempDataModel jirafeTempDataModel = new JirafeTempDataModel();
 			jirafeTempDataModel.setSite(site);
 			jirafeTempDataModel.setType(mappedType);
+			jirafeTempDataModel.setTypePK(itemModel.getPk().toString());
 			jirafeTempDataModel.setData(json);
 			return jirafeTempDataModel;
 		}

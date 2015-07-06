@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package org.jirafe.strategy;
 
@@ -21,9 +21,9 @@ import org.slf4j.LoggerFactory;
 /**
  * Base persistence strategy for implementations to extend. Provides basic saving mechanism plus iterating through
  * filters.
- * 
+ *
  * @author Larry Ramponi
- * 
+ *
  */
 public abstract class BasePersistStrategy implements JirafeDataPersistStrategy
 {
@@ -47,13 +47,13 @@ public abstract class BasePersistStrategy implements JirafeDataPersistStrategy
 		final ItemModel itemModel = jirafeDataDto.getItemModel();
 		if (itemModel == null)
 		{
-			log.debug("{}: itemModel is null, skipping...");
+			log.debug("itemModel is null, skipping...");
 			return;
 		}
 		final PK pk = itemModel.getPk();
 		if (pk == null)
 		{
-			log.debug("{}: pk is null, skipping...");
+			log.debug("{}: pk is null, skipping...", itemModel);
 			return;
 		}
 
@@ -86,7 +86,7 @@ public abstract class BasePersistStrategy implements JirafeDataPersistStrategy
 	}
 
 	/**
-	 * 
+	 *
 	 * @param jirafeDataDao
 	 */
 	public void setJirafeDataDao(final JirafeDataDao jirafeDataDao)

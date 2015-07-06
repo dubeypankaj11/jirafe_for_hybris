@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package org.jirafe.cronjob;
 
@@ -20,6 +20,7 @@ import java.util.List;
 
 import javax.annotation.Resource;
 
+import org.jirafe.dao.JirafeMappingsDao;
 import org.jirafe.dao.JirafeSyncDataDao;
 import org.jirafe.dto.JirafeTempDataModelFactory;
 import org.jirafe.enums.JirafeDataStatus;
@@ -34,10 +35,10 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Cron job that reads data from the jirafe data type and uses a {@code CatalogSyncCronJobSyncStrategy} to sync data.
- * 
+ *
  * @author Larry Ramponi
  * @author Dave Brand
- * 
+ *
  */
 public class JirafeCatalogSyncJobPerformable extends AbstractJobPerformable<JirafeCatalogSyncCronJobModel>
 {
@@ -49,6 +50,8 @@ public class JirafeCatalogSyncJobPerformable extends AbstractJobPerformable<Jira
 	protected JirafeTempDataModelFactory jirafeTempDataModelFactory;
 	@Resource
 	protected JirafeSyncDataDao jirafeSyncDataDao;
+	@Resource
+	private JirafeMappingsDao jirafeMappingsDao;
 
 	private static final String dataQuery = //
 	"SELECT {" + ItemSyncTimestampModel.PK + "},{" + ItemSyncTimestampModel.TARGETITEM + "} " + //
@@ -99,14 +102,26 @@ public class JirafeCatalogSyncJobPerformable extends AbstractJobPerformable<Jira
 				LOG.debug("Start performing batch, start={}/{}", lastModified, lastPK);
 				for (final ItemSyncTimestampModel item : data)
 				{
+					lastModified = item.getModifiedtime();
+					lastPK = item.getPk();
 					final ItemModel itemModel = item.getTargetItem();
+					final String itemType = itemModel.getItemtype();
+					final String mappedType = jirafeMappingsDao.getMappedType(itemModel);
+					if (mappedType == null)
+					{
+						LOG.debug("Skipping unmapped type {}", itemType);
+						continue;
+					}
+					if (!jirafeMappingsDao.filter(mappedType, itemModel))
+					{
+						LOG.debug("Ignoring {} (filtered)", itemModel);
+						continue;
+					}
 					final List<JirafeDataModel> jirafeDataModels = jirafeTempDataModelFactory.fromItemModel(itemModel);
 					if (jirafeDataModels != null)
 					{
 						syncStrategy.sync(jirafeDataModels);
 					}
-					lastModified = item.getModifiedtime();
-					lastPK = item.getPk();
 				}
 			}
 			syncStrategy.flush();
@@ -133,7 +148,7 @@ public class JirafeCatalogSyncJobPerformable extends AbstractJobPerformable<Jira
 
 	/**
 	 * Returns a list of jirafe data to be processed.
-	 * 
+	 *
 	 * @return
 	 */
 	protected List<ItemSyncTimestampModel> getCatalogSyncData(final FlexibleSearchQuery query, final Date lastModified,

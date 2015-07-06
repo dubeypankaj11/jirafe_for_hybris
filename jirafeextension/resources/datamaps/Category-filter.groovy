@@ -1,1 +1,1 @@
-return model?.getCatalogVersion()?.getActive()
+return model?.name && model?.getCatalogVersion()?.getActive()

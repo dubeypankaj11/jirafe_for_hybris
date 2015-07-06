@@ -8,8 +8,8 @@
  * ("Confidential Information"). You shall not disclose such Confidential
  * Information and shall use it only in accordance with the terms of the
  * license agreement you entered into with hybris.
- * 
- *  
+ *
+ *
  */
 package org.jirafe.constants;
 
@@ -19,7 +19,7 @@ package org.jirafe.constants;
 public final class JirafeextensionConstants extends GeneratedJirafeextensionConstants
 {
 	public static final String EXTENSIONNAME = "jirafeextension";
-	public static final String RELEASE_VERSION = "2.3.1";
+	public static final String RELEASE_VERSION = "2.4.1";
 
 	private JirafeextensionConstants()
 	{

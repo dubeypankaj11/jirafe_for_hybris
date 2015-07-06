@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package org.jirafe.strategy;
 
@@ -21,6 +21,7 @@ import org.jirafe.dto.JirafeTempDataModel;
 import org.jirafe.enums.JirafeDataStatus;
 import org.jirafe.model.data.JirafeDataModel;
 import org.jirafe.webservices.JirafeOutboundClient;
+import org.jirafe.webservices.JirafeOutboundClient.STATUS;
 import org.jirafe.webservices.JirafeOutboundClient.TransactionResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,9 +29,9 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Syncs {@code JirafeDataModel} to the Jirafe endpoints via the http protocol.
- * 
+ *
  * @author Larry Ramponi
- * 
+ *
  */
 public class HttpSyncStrategy implements JirafeDataSyncStrategy
 {
@@ -58,7 +59,7 @@ public class HttpSyncStrategy implements JirafeDataSyncStrategy
 
 		SiteData()
 		{
-			// Reserve space for the braces we'll need to surround the object with 
+			// Reserve space for the braces we'll need to surround the object with
 			len = 0;
 			typeMap = new HashMap<String, TypeData>();
 		}
@@ -105,7 +106,7 @@ public class HttpSyncStrategy implements JirafeDataSyncStrategy
 
 	/**
 	 * @throws AuthenticationException
-	 * 
+	 *
 	 */
 	@Override
 	public void sync(final List<JirafeDataModel> syncData) throws AuthenticationException
@@ -119,7 +120,7 @@ public class HttpSyncStrategy implements JirafeDataSyncStrategy
 		{
 			if (LOG.isDebugEnabled())
 			{
-				LOG.debug("JirafeData sync : attempting to sync type {}, pk={}", model.getType(), model.getPk());
+				LOG.debug("JirafeData sync : attempting to sync type {}, pk={}", model.getType(), model.getTypePK());
 			}
 			final String site = model.getSite();
 			SiteData siteData = queue.get(site);
@@ -198,7 +199,9 @@ public class HttpSyncStrategy implements JirafeDataSyncStrategy
 			{
 				final String batchBuf = buf.toString();
 				LOG.debug("Batch buffer: size is {}, calculated size is {}", batchBuf.length(), siteData.getLength());
+				LOG.trace("Batch contents: {}", batchBuf);
 				final TransactionResult result = jirafeOutboundClient.putBatch(batchBuf, site);
+				LOG.trace("Got result: {} {}", result.status, result.errors);
 				switch (result.status)
 				{
 					case SUCCESS:
@@ -209,26 +212,35 @@ public class HttpSyncStrategy implements JirafeDataSyncStrategy
 
 							for (int i = 0; i < models.size(); ++i)
 							{
-								final TransactionResult lineResult = result.analyzeRow(type, i);
+								STATUS status;
+								String errors;
+								try
+								{
+									final TransactionResult lineResult = result.analyzeRow(type, i);
+									status = lineResult.status;
+									errors = lineResult.errors != null ? lineResult.errors.toString() : null;
+								}
+								catch (final Exception e)
+								{
+									status = STATUS.FAILURE;
+									errors = e.toString();
+								}
 								final JirafeDataModel model = models.get(i);
-								switch (lineResult.status)
+								switch (status)
 								{
 									case SUCCESS:
 										model.setStatus(JirafeDataStatus.ACCEPTED);
 										successCount++;
 										if (LOG.isDebugEnabled())
 										{
-											LOG.debug("JirafeData sync : successfully sync'd item {}.", model.getPk());
+											LOG.debug("JirafeData sync: successfully sync'd item {}/{}.", model.getType(), model.getTypePK());
 										}
 										break;
 									case FAILURE:
 										model.setStatus(JirafeDataStatus.REJECTED);
-										model.setErrors(lineResult.errors.toString());
+										model.setErrors(errors);
 										failureCount++;
-										if (LOG.isDebugEnabled())
-										{
-											LOG.debug("JirafeData sync : failed to sync item {}.", model.getPk());
-										}
+										LOG.error("JirafeData sync: failed to sync item {}/{}.", model.getType(), model.getTypePK());
 										break;
 								}
 								save(model);

@@ -34,8 +34,8 @@
     "quantity": "quantity@{
         return quantity
     }",
-    "status": "quantity@{
-        return quantity > 0 ? 'accepted' : 'cancelled'
+    "status": "@{
+        return 'accepted'
     }",
     "price": "totalPrice@{
         return totalPrice

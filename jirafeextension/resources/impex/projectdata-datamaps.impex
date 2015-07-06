@@ -37,8 +37,8 @@ INSERT_UPDATE JirafeMappingDefinitions;type;definition;filter;endPointName[uniqu
     ""quantity"": ""quantity@{
         return quantity
     }"",
-    ""status"": ""quantity@{
-        return quantity > 0 ? 'accepted' : 'cancelled'
+    ""status"": ""@{
+        return 'accepted'
     }"",
     ""price"": ""totalPrice@{
         return totalPrice
@@ -49,8 +49,7 @@ INSERT_UPDATE JirafeMappingDefinitions;type;definition;filter;endPointName[uniqu
             discountValues
         )
     }"",
-    ""product"": ""@{
-        def product = model.product
+    ""product"": ""product@{
         if (!product) return null
         return jirafeModelToMapConverter.toMap(
             product, 'Product', null
@@ -150,7 +149,7 @@ INSERT_UPDATE JirafeMappingDefinitions;type;definition;filter;endPointName[uniqu
         }
     ]
 }
-";"return model?.getCatalogVersion()?.getActive()
+";"return model?.name && model?.getCatalogVersion()?.getActive()
 ";category
 ;Customer;"{
     ""__sites__"": ""@{return '*'}"",
@@ -247,7 +246,6 @@ INSERT_UPDATE JirafeMappingDefinitions;type;definition;filter;endPointName[uniqu
         orderStatus = [
             CANCELLED: 'cancelled',
             PAYMENT_CAPTURED: 'accepted',
-            COMPLETED: 'accepted',
         ][status?.code] ?: null
         return orderStatus
     }"",
@@ -304,16 +302,12 @@ INSERT_UPDATE JirafeMappingDefinitions;type;definition;filter;endPointName[uniqu
         return codes ?: null
     }""
 }
-";"import de.hybris.platform.util.Config
-import de.hybris.platform.core.enums.OrderStatus
+";"import de.hybris.platform.core.enums.OrderStatus
 return (
     !model.originalVersion &&   // Skip copies of changed orders
-    model.status in [           // These are the only statuses we care about
-        OrderStatus.CANCELLED,
-        // Default Hybris 4 doesn't go all the way to COMPLETED
-        Config.getParameter(""build.version"").startsWith('4.') ?
-            OrderStatus.PAYMENT_CAPTURED :
-            OrderStatus.COMPLETED,
+    model.status in [           // List the statuses we care about
+        OrderStatus.CANCELLED,  // Be sure to map them too (in Order.json)!!!
+        OrderStatus.PAYMENT_CAPTURED,
     ]
 )
 ";order
@@ -387,18 +381,20 @@ return (
         import de.hybris.platform.util.Config
         // Return an https URL to avoid security warnings
         def prefix = Config.getString('media.' + site + '.https', '')
-        if (prefix.endsWith('/') && url.startsWith('/')) prefix = prefix[0..-2]
-        return [[url: prefix + url]]
+        return [[url: new URI(prefix).resolve(url)]]
     }"",
-    ""categories"": [
-        {
-            ""_path"": ""supercategories""
-        },
-        {
-            ""id"": ""pk@{return pk.toString()}"",
-            ""name"": ""name""
+    ""categories"": ""supercategories@{
+        def ret = new HashSet()
+        for (def supercategory in supercategories) {
+            if (supercategory.name) {
+                ret.add([
+                    id: supercategory.pk.toString(),
+                    name: supercategory.name,
+                ])
+            }
         }
-    ],
+        return ret ?: null
+    }"",
     ""attributes"": ""@{
         if (!model.hasProperty('baseProduct')) return null
         def ret = []
@@ -429,3 +425,28 @@ return (
 }
 ";"return model?.getCatalogVersion()?.getActive()
 ";product
+;StockLevel;"{
+    ""__sites__"": ""product.catalogVersion.catalog.baseStores@{
+        def sites = []
+        for (def store in baseStores) {
+            for (def cmsSite: store.cmsSites) {
+                sites.add(cmsSite.uid)
+            }
+        }
+        return sites
+    }"",
+    ""product_code"": ""productCode"",
+    ""inventory_level"": ""@{
+        import de.hybris.platform.core.Registry
+        def stockService =
+            Registry.getApplicationContext().getBean('stockService')
+        return stockService.getTotalStockLevelAmount(model.product)
+    }"",
+    ""timestamp"": ""@{
+        createDate = dateFormat.format(model?.creationtime ?: model?.modifiedtime ?: new Date())
+        return createDate
+    }""
+}
+";"// Currently disabled by default
+return false
+";product.inventory
